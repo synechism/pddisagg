@@ -1,0 +1,459 @@
+From 69ba34f4c74640c58f687f80b29af107aa84fbc8 Mon Sep 17 00:00:00 2001
+From: synechism <abhisiri@sas.upenn.edu>
+Date: Sun, 26 Jul 2026 18:25:37 -0400
+Subject: [PATCH 2/3] Transfer only uncached KV blocks for prefix hits
+
+---
+ tests/distributed/test_tpu_connector.py    |  80 +++++++++
+ tpu_inference/distributed/tpu_connector.py | 187 +++++++++++++++++++--
+ 2 files changed, 251 insertions(+), 16 deletions(-)
+
+diff --git a/tests/distributed/test_tpu_connector.py b/tests/distributed/test_tpu_connector.py
+index db58b3a3..665eb027 100644
+--- a/tests/distributed/test_tpu_connector.py
++++ b/tests/distributed/test_tpu_connector.py
+@@ -230,6 +230,27 @@ class TestTPUConnectorScheduler(unittest.TestCase):
+         self.assertEqual(load_meta.local_block_ids, [1, 2])
+         self.assertIsNone(load_meta.remote_block_ids)
+ 
++    def test_update_state_after_alloc_selective_prefix_hit(self):
++        mock_request = MagicMock()
++        mock_request.request_id = "req-selective"
++        mock_request.kv_transfer_params = {
++            "uuid": 123,
++            "remote_block_ids": [10, 11, 12, 13],
++            "remote_host": "2.2.2.2",
++            "remote_port": 54321,
++            "selective_pull": True,
++        }
++        mock_blocks = MagicMock()
++        mock_blocks.get_block_ids.return_value = [[1, 2, 3, 4]]
++
++        # One 16-token block is missing; the first three are local prefix hits.
++        self.scheduler.update_state_after_alloc(mock_request, mock_blocks, 16)
++
++        load_meta = self.scheduler.reqs_to_load["req-selective"]
++        self.assertEqual(load_meta.local_block_ids, [4])
++        self.assertEqual(load_meta.remote_block_ids, [13])
++        self.assertTrue(load_meta.selective_pull)
++
+     def test_build_connector_meta(self):
+         """Tests that metadata is built and state is cleared."""
+         self.scheduler.is_producer = True
+@@ -278,6 +299,20 @@ class TestTPUConnectorScheduler(unittest.TestCase):
+         self.assertEqual(params["remote_host"], "1.1.1.1")
+         self.assertEqual(params["remote_port"], 12345)
+ 
++    @patch("tpu_inference.distributed.tpu_connector.get_uuid",
++           return_value=457)
++    def test_request_finished_advertises_selective_pull(self, mock_get_uuid):
++        self.scheduler.is_producer = True
++        self.scheduler.selective_pull = True
++        mock_request = MagicMock()
++        mock_request.request_id = "req-selective"
++        mock_request.status = RequestStatus.FINISHED_LENGTH_CAPPED
++        mock_request.num_computed_tokens = 32
++
++        _, params = self.scheduler.request_finished(mock_request, [1, 2])
++
++        self.assertTrue(params["selective_pull"])
++
+     def test_request_finished_producer_not_finished(self):
+         """Tests producer logic when a request is not yet finished."""
+         self.scheduler.is_producer = True
+@@ -418,6 +453,47 @@ class TestTPUConnectorWorker(unittest.TestCase):
+ 
+         worker._prepare_kv_and_wait.assert_called_once_with("req1", send_meta)
+ 
++    def test_prepare_selective_pull_defers_gather(self):
++        self.vllm_config.kv_transfer_config.is_kv_producer = True
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++        worker.selective_pull = True
++        send_meta = tpu_connector.SendMeta(uuid=7,
++                                           local_block_ids=[10, 11, 12, 13],
++                                           expiration_time=123)
++
++        worker._prepare_kv_and_wait("req-selective", send_meta)
++
++        self.assertEqual(worker.reqs_pending_pull[7],
++                         ("req-selective", send_meta))
++        self.assertIsNone(worker.reqs_wait_pull["req-selective"][0])
++        self.all_mocks["select_from_kv_caches"].assert_not_called()
++
++    def test_prepare_selective_kv_gathers_requested_suffix(self):
++        self.vllm_config.kv_transfer_config.is_kv_producer = True
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++        worker.runner = MagicMock()
++        worker.mesh = MagicMock()
++        worker.kv_transfer_server = MagicMock()
++        worker.reqs_pending_pull[7] = (
++            "req-selective",
++            tpu_connector.SendMeta(uuid=7,
++                                   local_block_ids=[10, 11, 12, 13],
++                                   expiration_time=123),
++        )
++        worker.reqs_wait_pull["req-selective"] = [None, 123, -1]
++        self.all_mocks["select_from_kv_caches"].return_value = "selected-kv"
++
++        worker._prepare_selective_kv(7, [13])
++
++        self.all_mocks["device_array"].assert_called_once()
++        self.all_mocks["select_from_kv_caches"].assert_called_once_with(
++            worker.runner.kv_caches,
++            self.all_mocks["device_array"].return_value)
++        worker.kv_transfer_server.await_pull.assert_called_once_with(
++            7, "selected-kv")
++        self.assertEqual(worker.reqs_wait_pull["req-selective"][0],
++                         "selected-kv")
++
+     def test_process_send_load_for_consumer_loading(self):
+         """Tests process_send_load for a consumer that needs to load KV."""
+         self.vllm_config.kv_transfer_config.is_kv_producer = False
+@@ -502,12 +578,16 @@ class TestTPUConnectorWorker(unittest.TestCase):
+ 
+         self.all_mocks['time'].perf_counter.return_value = 1000
+         worker.reqs_wait_pull = {'req1': ['kv_data', 900, -1]}
++        worker.kv_pull_uuid_to_req_id_map = {7: 'req1'}
++        worker.reqs_pending_pull = {7: ('req1', MagicMock())}
+ 
+         done_sending, done_recving = worker.get_finished()
+ 
+         self.assertEqual(done_sending, {'req1'})
+         self.assertEqual(done_recving, set())
+         self.assertNotIn('req1', worker.reqs_wait_pull)
++        self.assertNotIn(7, worker.kv_pull_uuid_to_req_id_map)
++        self.assertNotIn(7, worker.reqs_pending_pull)
+ 
+ 
+ class TestTPUConnectorUtils(unittest.TestCase):
+diff --git a/tpu_inference/distributed/tpu_connector.py b/tpu_inference/distributed/tpu_connector.py
+index c45b4ee1..5ddd4d77 100644
+--- a/tpu_inference/distributed/tpu_connector.py
++++ b/tpu_inference/distributed/tpu_connector.py
+@@ -59,6 +59,7 @@ D workflow:
+ """
+ 
+ import copy
++import json
+ import threading
+ import time
+ from concurrent.futures import Future, ThreadPoolExecutor
+@@ -128,6 +129,7 @@ class LoadMeta:
+     remote_block_ids: list[int] | list[list[int]] | None
+     remote_host: str | list[str]
+     remote_port: int | list[int]
++    selective_pull: bool = False
+ 
+ 
+ # The metadata used for communicating between scheduler and worker connectors.
+@@ -137,6 +139,19 @@ class TPUConnectorMetadata(KVConnectorMetadata):
+     reqs_to_load: dict[ReqId, LoadMeta] = field(default_factory=dict)
+ 
+ 
++def get_connector_extra_config(config: Any, key: str, default: Any) -> Any:
++    get_extra = getattr(config, "get_from_extra_config", None)
++    if callable(get_extra):
++        value = get_extra(key, default)
++        # unittest mocks return another mock for arbitrary methods.
++        if isinstance(value, (str, int, float, bool, dict, list, tuple)):
++            return value
++    extra_config = getattr(config, "kv_connector_extra_config", None)
++    if isinstance(extra_config, dict):
++        return extra_config.get(key, default)
++    return default
++
++
+ class TPUConnector(KVConnectorBase_V1):
+ 
+     def __init__(self, vllm_config: VllmConfig, role: KVConnectorRole,
+@@ -265,6 +280,12 @@ class TPUConnectorScheduler():
+         self.vllm_config = vllm_config
+         self.config = vllm_config.kv_transfer_config
+         self.is_producer = self.config.is_kv_producer
++        self.selective_pull = bool(
++            get_connector_extra_config(self.config,
++                                       "tpu_kv_selective_pull", False))
++        if (envs.TPU_MULTIHOST_BACKEND == "ray"
++                or dist_utils.get_enable_d2h_transfer()):
++            self.selective_pull = False
+ 
+         self.block_size = vllm_config.cache_config.block_size
+ 
+@@ -345,23 +366,41 @@ class TPUConnectorScheduler():
+         if num_external_tokens > 0:
+             # We need to load KV-cache from remote (partial prefix cache hit).
+             local_block_ids = blocks.get_block_ids()[0]
+-
+-            # NOTE(xiang): D needs to pull the whole prefill blocks from the remote
+-            # regardless how much ratio the prefix cache hits.
+-            # The reason is JAX P2P doesn't work as RDMA, instead it works like:
+-            # P just prepares the whole prefilled data and waits for pulling, then D pulls the
+-            # whole data. Which means even with partial prefix cache hit on D, D cannot only
+-            # pull the remaining partial data from P.
+-            # Unless we implement a side channel to let P know the prefix cache hit info on D,
+-            # so P can prepare those non-hit KV only, with that we need to change to:
+-            # local_block_ids = blocks.get_unhashed_block_ids()
++            remote_block_ids = params["remote_block_ids"]
++
++            # Legacy mode pulls every producer block because await_pull is
++            # registered before D reports its prefix hit. Selective mode uses
++            # the side channel to defer producer gather and transfer only the
++            # uncached suffix.
++            selective_pull = bool(params.get("selective_pull", False))
++            if selective_pull:
++                missing_blocks = (
++                    num_external_tokens + self.block_size - 1
++                ) // self.block_size
++                if missing_blocks > len(remote_block_ids):
++                    raise ValueError(
++                        "external KV token count exceeds producer block count")
++                cached_blocks = len(remote_block_ids) - missing_blocks
++                remote_block_ids = remote_block_ids[cached_blocks:]
++                if len(local_block_ids) == len(params["remote_block_ids"]):
++                    local_block_ids = local_block_ids[cached_blocks:]
++                elif len(local_block_ids) != missing_blocks:
++                    raise ValueError(
++                        "decoder block allocation does not match selective "
++                        "KV pull plan")
++                logger.info(
++                    "TPUConnector Scheduler selective pull --> req_id=%s "
++                    "cached_blocks=%d requested_blocks=%d total_blocks=%d",
++                    request.request_id, cached_blocks, missing_blocks,
++                    len(params["remote_block_ids"]))
+ 
+             self.reqs_to_load[request.request_id] = LoadMeta(
+                 uuid=params["uuid"],
+                 local_block_ids=local_block_ids,
+-                remote_block_ids=params["remote_block_ids"],
++                remote_block_ids=remote_block_ids,
+                 remote_host=params["remote_host"],
+                 remote_port=params["remote_port"],
++                selective_pull=selective_pull,
+             )
+         else:
+             # This branch means two cases:
+@@ -374,6 +413,7 @@ class TPUConnectorScheduler():
+                 remote_block_ids=None,
+                 remote_host=params["remote_host"],
+                 remote_port=params["remote_port"],
++                selective_pull=bool(params.get("selective_pull", False)),
+             )
+ 
+         # Only trigger 1 KV transfer per request.
+@@ -454,6 +494,8 @@ class TPUConnectorScheduler():
+                                       remote_block_ids=computed_block_ids,
+                                       remote_host=self.kv_ip,
+                                       remote_port=self.kv_port)
++            if self.selective_pull:
++                kv_transfer_params["selective_pull"] = True
+             logger.info(
+                 f"TPUConnector Scheduler ---->  generated reqs_to_send={self.reqs_to_send} | "
+                 f"kv_transfer_params={kv_transfer_params}")
+@@ -469,10 +511,16 @@ class TPUConnectorWorker:
+         self.vllm_config = vllm_config
+         self.config = vllm_config.kv_transfer_config
+         self.is_producer = self.config.is_kv_producer
++        self.multi_host = envs.TPU_MULTIHOST_BACKEND == "ray"
++        self.selective_pull = bool(
++            get_connector_extra_config(self.config,
++                                       "tpu_kv_selective_pull", False))
++        if (self.multi_host
++                or dist_utils.get_enable_d2h_transfer()):
++            self.selective_pull = False
+ 
+         self.runner: TPUModelRunner = None
+         self.mesh: Mesh = None
+-        self.multi_host = envs.TPU_MULTIHOST_BACKEND == "ray"
+         # default value for none distributed scenario
+         # when the topology is initialized, runner will update it
+         # based on topology_order_id
+@@ -481,6 +529,9 @@ class TPUConnectorWorker:
+         # req_id: (kv, expiration_time, buffer_index)
+         self.reqs_wait_pull: dict[ReqId, list[list[jax.Array], float,
+                                               int]] = {}
++        # uuid: (request id, producer metadata). With selective pulls the
++        # producer defers gather/await_pull until D reports its prefix hit.
++        self.reqs_pending_pull: dict[int, tuple[ReqId, SendMeta]] = {}
+         # req_id: (pull_thread_future, kv, block_ids)
+         self.reqs_pulling: dict[ReqId, list[Future, list[jax.Array],
+                                             list[int]]] = {}
+@@ -552,7 +603,8 @@ class TPUConnectorWorker:
+         logger.info(f"TPUConnector Worker --> register_runner | "
+                     f"node_id={self.node_id} | "
+                     f"ip={self.host_ip} | "
+-                    f"kv_transfer_port={self.kv_transfer_port}")
++                    f"kv_transfer_port={self.kv_transfer_port} | "
++                    f"selective_pull={self.selective_pull}")
+         self._maybe_start_p2p_server()
+ 
+         if self.is_producer and dist_utils.get_enable_d2h_transfer(
+@@ -596,8 +648,32 @@ class TPUConnectorWorker:
+         )
+ 
+         while True:
+-            client_id, uuid_bytes = sock.recv_multipart()
+-            uuid = int(uuid_bytes.decode('utf-8'))
++            client_id, message_bytes = sock.recv_multipart()
++            message = message_bytes.decode("utf-8")
++            if message.startswith("{"):
++                try:
++                    plan = json.loads(message)
++                    if plan.get("action") != "prepare":
++                        raise ValueError(
++                            f"unknown pull-plan action {plan.get('action')!r}")
++                    uuid = int(plan["uuid"])
++                    requested_block_ids = [
++                        int(block_id)
++                        for block_id in plan["remote_block_ids"]
++                    ]
++                    self._prepare_selective_kv(uuid, requested_block_ids)
++                    response = {"status": "ready"}
++                except Exception as exc:
++                    logger.exception(
++                        "TPUConnector Worker %s --> selective pull plan "
++                        "failed", self.node_id)
++                    response = {"status": "error", "error": str(exc)}
++                sock.send_multipart(
++                    [client_id,
++                     json.dumps(response).encode("utf-8")])
++                continue
++
++            uuid = int(message)
+             if uuid in self.kv_pull_uuid_to_req_id_map:
+                 req_id = self.kv_pull_uuid_to_req_id_map[uuid]
+                 logger.info(
+@@ -610,6 +686,7 @@ class TPUConnectorWorker:
+                         self.host_kv_pool.return_buffer(buffer_index, buffer)
+                     self.reqs_wait_pull[req_id][1] = -1
+                     self.reqs_wait_pull[req_id][2] = -1
++                    self.reqs_pending_pull.pop(uuid, None)
+                     self.kv_pull_uuid_to_req_id_map.pop(uuid)
+                 else:
+                     logger.warning(
+@@ -623,6 +700,36 @@ class TPUConnectorWorker:
+             # The response is not really needed.
+             # sock.send_multipart([client_id, b"", b"ACK"])
+ 
++    def _prepare_selective_kv(self, uuid: int,
++                              requested_block_ids: list[int]) -> None:
++        if uuid not in self.reqs_pending_pull:
++            raise KeyError(f"no pending selective pull for uuid={uuid}")
++        if not requested_block_ids:
++            raise ValueError("selective pull plan contains no blocks")
++
++        req_id, req_meta = self.reqs_pending_pull.pop(uuid)
++        all_block_ids = req_meta.local_block_ids
++        first_requested = len(all_block_ids) - len(requested_block_ids)
++        if (first_requested < 0
++                or all_block_ids[first_requested:] != requested_block_ids):
++            raise ValueError(
++                "selective pull must request a suffix of producer blocks")
++
++        num_valid_blocks = len(requested_block_ids)
++        transfer_block_count = get_transfer_block_bucket(num_valid_blocks)
++        padded_block_ids = requested_block_ids + [requested_block_ids[-1]] * (
++            transfer_block_count - num_valid_blocks)
++        indices = device_array(self.mesh, np.array(padded_block_ids))
++        kv = select_from_kv_caches(self.runner.kv_caches, indices)
++        self.reqs_wait_pull[req_id][0] = kv
++
++        logger.info(
++            "TPUConnector Worker %s --> req_id=%s selective pull ready "
++            "requested_blocks=%d total_blocks=%d transfer_blocks=%d "
++            "saved_blocks=%d", self.node_id, req_id, num_valid_blocks,
++            len(all_block_ids), transfer_block_count, first_requested)
++        self.kv_transfer_server.await_pull(uuid, kv)
++
+     def process_send_load(self, metadata: TPUConnectorMetadata):
+         """
+         This is called in runner before calling model forward,
+@@ -696,6 +803,18 @@ class TPUConnectorWorker:
+ 
+     def _prepare_kv_and_wait(self, req_id: str, req_meta: SendMeta):
+         local_block_ids = req_meta.local_block_ids
++        if self.selective_pull:
++            self.reqs_wait_pull[req_id] = [
++                None, req_meta.expiration_time, -1
++            ]
++            self.reqs_pending_pull[req_meta.uuid] = (req_id, req_meta)
++            self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
++            logger.info(
++                "TPUConnector Worker %s --> req_id=%s waiting for "
++                "decoder selective pull plan total_blocks=%d", self.node_id,
++                req_id, len(local_block_ids))
++            return
++
+         num_valid_blocks = len(local_block_ids)
+         use_d2h_transfer = (dist_utils.get_enable_d2h_transfer()
+                             and not self.multi_host)
+@@ -832,6 +951,8 @@ class TPUConnectorWorker:
+         # Make sure they have the same num blocks because we don't care
+         # if partial prefix cache hit now.
+         assert len(local_block_ids) == len(remote_block_ids)
++        if req_meta.selective_pull:
++            self._request_selective_pull_plan(req_meta)
+ 
+         num_valid_blocks = len(remote_block_ids)
+         use_d2h_transfer = (dist_utils.get_enable_d2h_transfer()
+@@ -858,9 +979,10 @@ class TPUConnectorWorker:
+                 kv = conn.pull(req_meta.uuid, kv_spec)
+         else:
+             kv = conn.pull(req_meta.uuid, kv_spec)
+-        kv_size_mb = sum(k.nbytes for k in kv) / (1024 * 1024)
++        kv_size_mb = sum(array.nbytes for array in kv) / (1024 * 1024)
+         end_time_0, end_time_1 = time.perf_counter(), None
+         prepare_time_ms = (end_time_0 - start_time) * 1000
++        pull_time_ms = 0.0
+         if dist_utils.get_enable_block_kv_transfer():
+             while True:
+                 end_time_1 = time.perf_counter()
+@@ -894,6 +1016,34 @@ class TPUConnectorWorker:
+                 prepare_time_ms, pull_time_ms, kv_size_mb)
+         return kv
+ 
++    def _request_selective_pull_plan(self, req_meta: LoadMeta) -> None:
++        remote_host = req_meta.remote_host
++        if isinstance(remote_host, list):
++            remote_host = remote_host[self.node_id]
++        sock_path = make_zmq_path("tcp", remote_host,
++                                  self.side_channel_port)
++        socket = make_zmq_socket(ctx=self.zmq_cxt,
++                                 path=sock_path,
++                                 socket_type=zmq.DEALER,
++                                 bind=False)
++        try:
++            socket.setsockopt(
++                zmq.RCVTIMEO,
++                int(dist_utils.get_p2p_wait_pull_timeout() * 1000),
++            )
++            socket.send_json({
++                "action": "prepare",
++                "uuid": req_meta.uuid,
++                "remote_block_ids": req_meta.remote_block_ids,
++            })
++            response = socket.recv_json()
++            if response.get("status") != "ready":
++                raise RuntimeError(
++                    "producer rejected selective pull plan: "
++                    f"{response.get('error', 'unknown error')}")
++        finally:
++            socket.close(linger=0)
++
+     def _get_kv_spec(self, num_blocks: int) -> list[jax.ShapeDtypeStruct]:
+         assert num_blocks > 0
+         shape = copy.copy(self.shape)
+@@ -958,6 +1108,11 @@ class TPUConnectorWorker:
+                 if buffer_index != -1 and self.host_kv_pool is not None:
+                     self.host_kv_pool.return_buffer(buffer_index, buffer)
+                 del self.reqs_wait_pull[req_id]
++                for uuid, mapped_req_id in list(
++                        self.kv_pull_uuid_to_req_id_map.items()):
++                    if mapped_req_id == req_id:
++                        self.kv_pull_uuid_to_req_id_map.pop(uuid, None)
++                        self.reqs_pending_pull.pop(uuid, None)
+                 done_sending.add(req_id)
+                 # Return the buffer to the pool
+ 
+-- 
+2.51.0
+

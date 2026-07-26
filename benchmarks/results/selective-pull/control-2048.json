@@ -1,0 +1,111 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "endpoint": "http://127.0.0.1:9000",
+  "pairs": [
+    {
+      "pair_index": 0,
+      "input_tokens": 2048,
+      "prefix_tokens": 1536,
+      "output_token_ids": [
+        18,
+        2266,
+        16,
+        15,
+        18662,
+        18,
+        16,
+        17,
+        2266,
+        16,
+        18662,
+        18662,
+        22,
+        21,
+        17,
+        18
+      ],
+      "output_sha256": "34850687973caae35fd06f3c37639c04004d4dfff82c44d5bc7e71628101d961",
+      "matches_expected": true,
+      "total_s": 3.326106579000225
+    },
+    {
+      "pair_index": 1,
+      "input_tokens": 2048,
+      "prefix_tokens": 1536,
+      "output_token_ids": [
+        18,
+        16,
+        18,
+        15,
+        18662,
+        17,
+        15,
+        2266,
+        16,
+        21,
+        22,
+        15,
+        2266,
+        17,
+        16,
+        24
+      ],
+      "output_sha256": "91aab8f01dff0cff7197c533a72d3d80884f135ad9947b00aae654773a19311d",
+      "matches_expected": true,
+      "total_s": 0.18998907400055032
+    },
+    {
+      "pair_index": 2,
+      "input_tokens": 2048,
+      "prefix_tokens": 1536,
+      "output_token_ids": [
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18
+      ],
+      "output_sha256": "dec84bc431e1327f654824c51862eae45a5a0204580d17206edc823aa3e3e81d",
+      "matches_expected": true,
+      "total_s": 0.19088758999987476
+    },
+    {
+      "pair_index": 3,
+      "input_tokens": 2048,
+      "prefix_tokens": 1536,
+      "output_token_ids": [
+        2266,
+        16,
+        18,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18
+      ],
+      "output_sha256": "211c8281a1c957a5af5c41481e53b1a981350c30fc66a808dccb3ba9c38fbbf8",
+      "matches_expected": true,
+      "total_s": 0.19254823100072826
+    }
+  ],
+  "all_match": true
+}

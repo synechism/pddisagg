@@ -1,0 +1,19 @@
+.DS_Store
+.env
+.venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Local experiment outputs and credentials must never be committed.
+artifacts/
+results/
+profiles/
+secrets/
+
+# Curated benchmark evidence belongs in Git.
+!benchmarks/results/
+!benchmarks/results/**
+
+# Local upstream checkouts are development worktrees, not project source.
+upstream/

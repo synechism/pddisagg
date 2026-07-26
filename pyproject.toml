@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pd-disagg"
+version = "0.1.0"
+description = "Measurement harness for TPU prefill/decode disaggregation"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<0.29",
+  "uvicorn>=0.35,<1",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8,<10",
+]
+
+[project.scripts]
+pd-loadgen = "pd_disagg.loadgen:main"
+pd-aggregate = "pd_disagg.aggregate:main"
+pd-correctness = "pd_disagg.correctness:main"
+pd-router = "pd_disagg.router:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pd_disagg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

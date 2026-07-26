@@ -1,0 +1,73 @@
+From b77ea5fb798ad1ac9094bf32788cbe2f9a384b5f Mon Sep 17 00:00:00 2001
+From: synechism <abhisiri@sas.upenn.edu>
+Date: Sun, 26 Jul 2026 18:34:12 -0400
+Subject: [PATCH 3/3] Release producer state on full prefix hits
+
+---
+ tests/distributed/test_tpu_connector.py    | 24 ++++++++++++++++++++++
+ tpu_inference/distributed/tpu_connector.py | 10 +++++----
+ 2 files changed, 30 insertions(+), 4 deletions(-)
+
+diff --git a/tests/distributed/test_tpu_connector.py b/tests/distributed/test_tpu_connector.py
+index 665eb027..f4708eb3 100644
+--- a/tests/distributed/test_tpu_connector.py
++++ b/tests/distributed/test_tpu_connector.py
+@@ -551,6 +551,30 @@ class TestTPUConnectorWorker(unittest.TestCase):
+         worker._notify_pull_done.assert_called_once_with(
+             "socket", "req1", uuid)
+ 
++    def test_process_send_load_full_prefix_hit_notifies(self):
++        """A full local prefix hit must release producer transfer state."""
++        self.vllm_config.kv_transfer_config.is_kv_producer = False
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++        worker._maybe_build_notif_socket = MagicMock(return_value="socket")
++        worker._notify_pull_done = MagicMock()
++        load_meta = tpu_connector.LoadMeta(
++            uuid=11,
++            local_block_ids=[1, 2],
++            remote_block_ids=None,
++            remote_host="host",
++            remote_port=123,
++            selective_pull=True,
++        )
++        meta = tpu_connector.TPUConnectorMetadata(
++            reqs_to_load={"req-full-hit": load_meta})
++
++        worker.process_send_load(meta)
++
++        self.all_mocks["insert_kv_chunks"].assert_not_called()
++        worker._maybe_build_notif_socket.assert_called_once_with(load_meta)
++        worker._notify_pull_done.assert_called_once_with(
++            "socket", "req-full-hit", 11)
++
+     def test_get_finished_recving(self):
+         """Tests get_finished for a request that has finished pulling."""
+         self.vllm_config.kv_transfer_config.is_kv_producer = False
+diff --git a/tpu_inference/distributed/tpu_connector.py b/tpu_inference/distributed/tpu_connector.py
+index 5ddd4d77..95ce36ac 100644
+--- a/tpu_inference/distributed/tpu_connector.py
++++ b/tpu_inference/distributed/tpu_connector.py
+@@ -779,14 +779,16 @@ class TPUConnectorWorker:
+                         logger.info(
+                             f"TPUConnector Worker {self.node_id} --> req_id={req_id}, takes {(end_time - start_time)*1000:.2f}ms for insert_kv_chunks"
+                         )
+-                    # The request has finished pulling the KV from remote, or it has full local
+-                    # prefix cache, need to notify P to let it free blocks.
+-                    socket = self._maybe_build_notif_socket(req_meta)
+-                    self._notify_pull_done(socket, req_id, req_meta.uuid)
+                 else:
+                     logger.info(
+                         f"TPUConnector Worker {self.node_id} --> req_id={req_id}, skip insert_kv_chunks."
+                     )
++                # A full decoder-side prefix hit never enters reqs_pulling,
++                # but the producer still owns deferred transfer state. Notify
++                # it in both cases so blocks are released immediately instead
++                # of waiting for the transfer timeout.
++                socket = self._maybe_build_notif_socket(req_meta)
++                self._notify_pull_done(socket, req_id, req_meta.uuid)
+ 
+     def get_kv_connector_stats(self) -> KVConnectorStats | None:
+         """
+-- 
+2.51.0
+

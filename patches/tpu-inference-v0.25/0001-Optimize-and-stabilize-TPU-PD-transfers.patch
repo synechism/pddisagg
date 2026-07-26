@@ -1,0 +1,207 @@
+From afac0f54989b5ec5b7e9c5435bc83a446c6e0783 Mon Sep 17 00:00:00 2001
+From: synechism <abhisiri@sas.upenn.edu>
+Date: Sun, 26 Jul 2026 17:48:07 -0400
+Subject: [PATCH 1/3] Optimize and stabilize TPU PD transfers
+
+---
+ tests/distributed/test_tpu_connector.py    | 20 +++++--
+ tpu_inference/distributed/tpu_connector.py | 63 ++++++++++++++++++----
+ tpu_inference/worker/tpu_worker.py         | 31 +++++++++++
+ 3 files changed, 100 insertions(+), 14 deletions(-)
+
+diff --git a/tests/distributed/test_tpu_connector.py b/tests/distributed/test_tpu_connector.py
+index 253a25ea..db58b3a3 100644
+--- a/tests/distributed/test_tpu_connector.py
++++ b/tests/distributed/test_tpu_connector.py
+@@ -512,6 +512,19 @@ class TestTPUConnectorWorker(unittest.TestCase):
+ 
+ class TestTPUConnectorUtils(unittest.TestCase):
+ 
++    def test_transfer_block_bucket(self):
++        from tpu_inference.distributed.tpu_connector import \
++            get_transfer_block_bucket
++
++        self.assertEqual(get_transfer_block_bucket(1), 1)
++        self.assertEqual(get_transfer_block_bucket(2), 2)
++        self.assertEqual(get_transfer_block_bucket(3), 4)
++        self.assertEqual(get_transfer_block_bucket(4), 4)
++        self.assertEqual(get_transfer_block_bucket(5), 8)
++        self.assertEqual(get_transfer_block_bucket(127), 128)
++        with self.assertRaises(ValueError):
++            get_transfer_block_bucket(0)
++
+     @patch("tpu_inference.distributed.tpu_connector.multi_layer_copy")
+     def test_insert_kv_chunks_unmocked_contiguous(self, mock_multi_layer_copy):
+         """
+@@ -522,7 +535,8 @@ class TestTPUConnectorUtils(unittest.TestCase):
+ 
+         # We need mock arrays that have .shape attribute
+         y_slice = MagicMock()
+-        y_slice.shape = [4, 10]
++        # Nine valid blocks arrived in a 16-block transfer bucket.
++        y_slice.shape = [16, 10]
+         kv_slices = [y_slice]
+         kv_caches = [MagicMock()]
+         mesh = MagicMock()
+@@ -535,9 +549,9 @@ class TestTPUConnectorUtils(unittest.TestCase):
+         mock_multi_layer_copy.assert_called_once()
+         _, kwargs = mock_multi_layer_copy.call_args
+ 
+-        self.assertEqual(kwargs['dest_offsets'].shape[0], 9)
++        self.assertEqual(kwargs['dest_offsets'].shape[0], 16)
+         np.testing.assert_array_equal(kwargs['dest_offsets'][:3], [5, 10, 17])
+-        self.assertEqual(kwargs['chunk_sizes'].shape[0], 9)
++        self.assertEqual(kwargs['chunk_sizes'].shape[0], 16)
+         np.testing.assert_array_equal(kwargs['chunk_sizes'][:3], [4, 2, 3])
+         np.testing.assert_array_equal(kwargs['num_chunks'], [3])
+ 
+diff --git a/tpu_inference/distributed/tpu_connector.py b/tpu_inference/distributed/tpu_connector.py
+index 3d897ab4..c45b4ee1 100644
+--- a/tpu_inference/distributed/tpu_connector.py
++++ b/tpu_inference/distributed/tpu_connector.py
+@@ -696,12 +696,27 @@ class TPUConnectorWorker:
+ 
+     def _prepare_kv_and_wait(self, req_id: str, req_meta: SendMeta):
+         local_block_ids = req_meta.local_block_ids
+-        # TODO(xiang): pad block_ids to avoid recompilation
+-        indices = device_array(self.mesh, np.array(local_block_ids))
++        num_valid_blocks = len(local_block_ids)
++        use_d2h_transfer = (dist_utils.get_enable_d2h_transfer()
++                            and not self.multi_host)
++        transfer_block_count = (
++            num_valid_blocks if use_d2h_transfer else
++            get_transfer_block_bucket(num_valid_blocks))
++        # Direct TPU transfers use a small set of power-of-two shapes instead
++        # of compiling a new gather/transfer program for every prompt length.
++        # Repeating a valid block is safe because the decoder inserts only the
++        # first num_valid_blocks entries.
++        padded_block_ids = local_block_ids + [local_block_ids[-1]] * (
++            transfer_block_count - num_valid_blocks)
++        indices = device_array(self.mesh, np.array(padded_block_ids))
+         kv = select_from_kv_caches(self.runner.kv_caches, indices)
+-        if dist_utils.get_enable_d2h_transfer() and not self.multi_host:
++        logger.info(
++            "TPUConnector Worker %s --> req_id=%s KV transfer bucket "
++            "valid_blocks=%d transfer_blocks=%d", self.node_id, req_id,
++            num_valid_blocks, transfer_block_count)
++        if use_d2h_transfer:
+             self.kv_d2h_executor.submit(self._async_d2h_and_transfer, req_id,
+-                                        req_meta, kv, len(local_block_ids))
++                                        req_meta, kv, num_valid_blocks)
+         else:
+             buffer_idx = -1
+             # NOTE(xiang): We need to manually store the kv because:
+@@ -818,9 +833,17 @@ class TPUConnectorWorker:
+         # if partial prefix cache hit now.
+         assert len(local_block_ids) == len(remote_block_ids)
+ 
+-        kv_spec = self._get_kv_spec(len(remote_block_ids))
++        num_valid_blocks = len(remote_block_ids)
++        use_d2h_transfer = (dist_utils.get_enable_d2h_transfer()
++                            and not self.multi_host)
++        transfer_block_count = (
++            num_valid_blocks if use_d2h_transfer else
++            get_transfer_block_bucket(num_valid_blocks))
++        kv_spec = self._get_kv_spec(transfer_block_count)
+         logger.info(
+-            f"Worker {self.node_id} --> kv transfer | start pull req_id={req_id} | uuid={req_meta.uuid}"
++            f"Worker {self.node_id} --> kv transfer | start pull req_id={req_id} | "
++            f"uuid={req_meta.uuid} | valid_blocks={num_valid_blocks} | "
++            f"transfer_blocks={transfer_block_count}"
+         )
+         start_time = time.perf_counter()
+         if jax.profiler.TraceAnnotation.is_enabled():
+@@ -872,7 +895,7 @@ class TPUConnectorWorker:
+         return kv
+ 
+     def _get_kv_spec(self, num_blocks: int) -> list[jax.ShapeDtypeStruct]:
+-        assert num_blocks <= self.shape[0]
++        assert num_blocks > 0
+         shape = copy.copy(self.shape)
+         shape[0] = num_blocks
+         return [
+@@ -954,6 +977,18 @@ def get_uuid() -> int:
+     return int128 >> 78
+ 
+ 
++def get_transfer_block_bucket(num_blocks: int) -> int:
++    """Return the smallest power-of-two transfer shape holding num_blocks.
++
++    Exact block counts create distinct JAX programs for gather, pull, and
++    insert. Bucketing bounds the number of compiled shapes to O(log N), while
++    transferring fewer than 2x the requested blocks.
++    """
++    if num_blocks <= 0:
++        raise ValueError("num_blocks must be positive")
++    return 1 << (num_blocks - 1).bit_length()
++
++
+ @jax.jit
+ def select_from_kv_caches(kv_caches: list[jax.Array],
+                           indices: list[jax.Array]) -> list[jax.Array]:
+@@ -982,10 +1017,16 @@ def insert_kv_chunks(kv_caches: list[jax.Array], kv_slices: list[jax.Array],
+             start_idx = i
+ 
+     num_chunks = len(src_offsets)
+-    total_len = len(block_numbers)
+-
+-    # Pad to total_len to avoid recompilation
+-    while len(src_offsets) < total_len:
++    num_valid_blocks = len(block_numbers)
++    transfer_block_count = int(kv_slices[0].shape[0])
++    if num_valid_blocks > transfer_block_count:
++        raise ValueError(
++            "received fewer KV blocks than the decoder needs: "
++            f"{transfer_block_count} < {num_valid_blocks}")
++
++    # Match the received transfer bucket, so both the source arrays and the
++    # dynamic offset arrays reuse the same compiled insert program.
++    while len(src_offsets) < transfer_block_count:
+         src_offsets.append(0)
+         dest_offsets.append(0)
+         chunk_sizes.append(0)
+diff --git a/tpu_inference/worker/tpu_worker.py b/tpu_inference/worker/tpu_worker.py
+index 6cc0f515..a72d775a 100644
+--- a/tpu_inference/worker/tpu_worker.py
++++ b/tpu_inference/worker/tpu_worker.py
+@@ -223,6 +223,37 @@ class TPUWorker(WorkerBase):
+                     tpu_chips_per_process_bounds="",
+                     tpu_visible_chips=""):
+ 
++        # The API process resolves TPU_VISIBLE_CHIPS into physical device IDs
++        # on parallel_config before spawning EngineCore. The spawn path does
++        # not preserve TPU_VISIBLE_CHIPS itself, so restore it here before the
++        # first jax.devices()/jax.local_devices() call initializes libtpu.
++        # Without this, the first co-located EngineCore claims every chip on
++        # the host and a second prefill/decode worker cannot start.
++        assigned_device_ids = getattr(
++            self.parallel_config, "assigned_physical_gpu_ids", None)
++        assigned_chips = os.environ.get("PD_TPU_VISIBLE_CHIPS", "")
++        affinity_source = "PD_TPU_VISIBLE_CHIPS"
++        if not assigned_chips and assigned_device_ids:
++            assigned_chips = ",".join(
++                str(device_id) for device_id in assigned_device_ids)
++            affinity_source = "parallel_config"
++        if assigned_chips and not os.environ.get("TPU_VISIBLE_CHIPS"):
++            num_assigned_chips = len(assigned_chips.split(","))
++            os.environ["TPU_VISIBLE_CHIPS"] = assigned_chips
++            os.environ.setdefault(
++                "TPU_CHIPS_PER_PROCESS_BOUNDS",
++                f"1,{num_assigned_chips},1",
++            )
++            os.environ.setdefault("TPU_PROCESS_BOUNDS", "1,1,1")
++            logger.info(
++                "Restored EngineCore TPU affinity | "
++                "source=%s | TPU_VISIBLE_CHIPS=%s | "
++                "TPU_CHIPS_PER_PROCESS_BOUNDS=%s",
++                affinity_source,
++                assigned_chips,
++                os.environ["TPU_CHIPS_PER_PROCESS_BOUNDS"],
++            )
++
+         if (envs.TPU_MULTIPROCESS_DP
+                 and self.parallel_config.pipeline_parallel_size == 1):
+             self._setup_dp_chip_isolation()
+-- 
+2.51.0
+
