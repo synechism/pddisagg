@@ -1,0 +1,17 @@
+{
+  "case_id": 102,
+  "delay_s": 6.0,
+  "prefill_status": 200,
+  "prefill_elapsed_s": 0.03508018199863727,
+  "uuid": 689478850402465,
+  "decode_status": 500,
+  "decode_elapsed_s": 0.021185231000345084,
+  "decode_body": {
+    "error": {
+      "message": "EngineCore encountered an issue. See stack trace (above) for the root cause.",
+      "type": "InternalServerError",
+      "param": null,
+      "code": 500
+    }
+  }
+}

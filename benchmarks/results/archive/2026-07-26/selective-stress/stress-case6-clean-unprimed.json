@@ -1,0 +1,52 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "endpoint": "http://127.0.0.1:9000",
+  "cases": 1,
+  "case_offset": 6,
+  "concurrency": 1,
+  "input_tokens": 512,
+  "prefix_tokens": [
+    384
+  ],
+  "output_tokens": 16,
+  "primed": false,
+  "warmed_up": false,
+  "burst_s": 7.119972189000691,
+  "successful": 1,
+  "exact_matches": 1,
+  "latency_ms": {
+    "p50": 7119.800929000121,
+    "p95": 7119.800929000121,
+    "p99": 7119.800929000121,
+    "max": 7119.800929000121
+  },
+  "results": [
+    {
+      "status": "ok",
+      "elapsed_s": 7.119800929000121,
+      "prefill_ms": 3229.409433,
+      "output_token_ids": [
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16,
+        18,
+        16
+      ],
+      "output_sha256": "7ab69d493416102cbb4936143f1cdf3ddc8e7790945210b0d3163dadcfe79368",
+      "case_id": 6,
+      "prefix_tokens": 384,
+      "matches_expected": true
+    }
+  ]
+}

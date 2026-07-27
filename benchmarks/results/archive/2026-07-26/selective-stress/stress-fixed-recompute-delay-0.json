@@ -1,0 +1,28 @@
+{
+  "case_id": 105,
+  "delay_s": 0.0,
+  "prefill_status": 200,
+  "prefill_elapsed_s": 0.0416609910025727,
+  "uuid": 676369460800229,
+  "decode_status": 200,
+  "decode_elapsed_s": 0.1543453779995616,
+  "decode_output_token_ids": [
+    16,
+    15,
+    18,
+    18,
+    18,
+    18662,
+    16,
+    15,
+    18,
+    18,
+    18,
+    18662,
+    16,
+    15,
+    18,
+    18
+  ],
+  "decode_output_sha256": "77bfad6e0d7af6daf8b3ef6df54b4b34056ced0838fc85abaa27d29ec1e124eb"
+}

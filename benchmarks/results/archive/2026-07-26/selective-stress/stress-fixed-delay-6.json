@@ -1,0 +1,41 @@
+{
+  "case_id": 102,
+  "delay_s": 6.0,
+  "prefill_status": 200,
+  "prefill_elapsed_s": 3.2349778419993527,
+  "uuid": 846910625226361,
+  "decode_status": 500,
+  "decode_elapsed_s": 0.02547045900064404,
+  "decode_output_token_ids": null,
+  "decode_output_sha256": null,
+  "decode_error_body": {
+    "error": {
+      "message": "Internal server error",
+      "type": "InternalServerError",
+      "param": null,
+      "code": 500
+    }
+  },
+  "local_status": 200,
+  "local_elapsed_s": 33.267147626000224,
+  "local_output_token_ids": [
+    18662,
+    16,
+    15,
+    18,
+    16,
+    18,
+    18662,
+    18662,
+    16,
+    15,
+    18,
+    16,
+    18,
+    18662,
+    18662,
+    16
+  ],
+  "local_output_sha256": "01d71d149416efc19022abee3dfcfa2a8b96bd2c570239945effa8a8f2c81e4b",
+  "matches_local": false
+}

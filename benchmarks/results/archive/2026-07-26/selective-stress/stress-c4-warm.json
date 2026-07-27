@@ -1,0 +1,133 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "endpoint": "http://127.0.0.1:9000",
+  "cases": 4,
+  "case_offset": 4,
+  "concurrency": 4,
+  "input_tokens": 512,
+  "prefix_tokens": [
+    384
+  ],
+  "output_tokens": 16,
+  "primed": true,
+  "warmed_up": true,
+  "burst_s": 0.2321031489991583,
+  "successful": 4,
+  "exact_matches": 3,
+  "latency_ms": {
+    "p50": 207.2625920000064,
+    "p95": 229.86450084990793,
+    "p99": 230.7477393699446,
+    "max": 230.96854899995378
+  },
+  "results": [
+    {
+      "status": "ok",
+      "elapsed_s": 0.18530436499895586,
+      "prefill_ms": 20.556682,
+      "output_token_ids": [
+        16,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15
+      ],
+      "output_sha256": "1a33cee687f40702f4a818c745eb49f4c2df7134294bbf3d50e06aee9cfe3c45",
+      "case_id": 4,
+      "prefix_tokens": 384,
+      "matches_expected": true
+    },
+    {
+      "status": "ok",
+      "elapsed_s": 0.19091695600036473,
+      "prefill_ms": 28.857122,
+      "output_token_ids": [
+        18662,
+        18,
+        16,
+        17,
+        2266,
+        16,
+        18662,
+        18,
+        16,
+        17,
+        2266,
+        16,
+        18662,
+        18,
+        16,
+        17
+      ],
+      "output_sha256": "31bbe382ce2b5b8dbde4b85ab82d22c64a2b29d05f3a6ef7e187de650ca4662e",
+      "case_id": 5,
+      "prefix_tokens": 384,
+      "matches_expected": true
+    },
+    {
+      "status": "ok",
+      "elapsed_s": 0.23096854899995378,
+      "prefill_ms": 43.164853,
+      "output_token_ids": [
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18
+      ],
+      "output_sha256": "dec84bc431e1327f654824c51862eae45a5a0204580d17206edc823aa3e3e81d",
+      "case_id": 6,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "ok",
+      "elapsed_s": 0.22360822799964808,
+      "prefill_ms": 34.306773,
+      "output_token_ids": [
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18
+      ],
+      "output_sha256": "dec84bc431e1327f654824c51862eae45a5a0204580d17206edc823aa3e3e81d",
+      "case_id": 7,
+      "prefix_tokens": 384,
+      "matches_expected": true
+    }
+  ]
+}

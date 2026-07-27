@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "output_token_ids": [
+    18662,
+    17,
+    22,
+    16,
+    17,
+    3950,
+    3950,
+    23,
+    21,
+    23,
+    16,
+    23,
+    19,
+    19,
+    2266,
+    19
+  ],
+  "output_sha256": "59ee9eac616b06fe3395b53fe75cf3b61860a7dc7dd9147d7610e52e9e754a7a",
+  "matches_router_retry": true
+}

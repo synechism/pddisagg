@@ -1,0 +1,287 @@
+INFO 07-26 23:44:03 [__init__.py:76] TPU info: node_name=pd-flex-v6e-4-south3 | tpu_type=v6e-4 | worker_id=0 | num_chips=4 | num_cores_per_chip=1
+WARNING 07-26 23:44:03 [tpu_platform.py:408] Pin memory is not supported on TPU.
+INFO 07-26 23:44:06 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:08 [importing.py:53] Triton is installed but 0 active driver(s) found (expected 1). Disabling Triton to prevent runtime errors.
+WARNING 07-26 23:44:08 [importing.py:73] Triton is installed, but `triton.backends` could not be imported. Disabling Triton.
+INFO 07-26 23:44:08 [importing.py:88] Triton not installed or not compatible; certain GPU-related functions will not be available.
+INFO 07-26 23:44:10 [attention_interface.py:56] Using default RPA kernel
+WARNING 07-26 23:44:10 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+WARNING 07-26 23:44:10 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+WARNING 07-26 23:44:10 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+WARNING 07-26 23:44:10 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:10 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.jax.utils.weight_utils.JaxDummyModelLoader'>` with load format `jax_dummy`
+INFO 07-26 23:44:10 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.common.pathways_dummy_loader.PathwaysDummyModelLoader'>` with load format `pathways_dummy`
+INFO 07-26 23:44:10 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.vllm.vllm_model_loader.IncrementalModelLoader'>` with load format `tpu_streaming_loader`
+WARNING 07-26 23:44:10 [__init__.py:101] Load format `runai_streamer` is already registered, and will be overwritten by the new loader class `<class 'tpu_inference.models.vllm.vllm_model_loader.RunaiIncrementalModelLoader'>`.
+INFO 07-26 23:44:10 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.vllm.vllm_model_loader.RunaiIncrementalModelLoader'>` with load format `runai_streamer`
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:345] 
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:345]        █     █     █▄   ▄█
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:345]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.25.0
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:345]   █▄█▀ █     █     █     █  model   Qwen/Qwen3-4B
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:345]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:345] 
+(APIServer pid=133398) INFO 07-26 23:44:10 [api_utils.py:273] non-default args: {'model_tag': 'Qwen/Qwen3-4B', 'host': '0.0.0.0', 'port': 8400, 'model': 'Qwen/Qwen3-4B', 'revision': '1cfa9a7208912126459214e8b04321603b3df60c', 'max_model_len': 8192, 'download_dir': '/mnt/pd-disagg/cache/huggingface', 'device_ids': [0], 'block_size': 128, 'gpu_memory_utilization': 0.3, 'enable_prefix_caching': True, 'max_num_batched_tokens': 1024, 'enable_chunked_prefill': True, 'kv_transfer_config': KVTransferConfig(kv_connector='TPUConnector', engine_id='b2000673-4621-4641-a70f-6db01e695f0e', kv_buffer_device='tpu', kv_buffer_size=1000000000.0, kv_role='kv_producer', kv_rank=None, kv_parallel_size=1, kv_ip='127.0.0.1', kv_port=14579, kv_connector_extra_config={'tpu_kv_selective_pull': True}, kv_connector_module_path='tpu_inference.distributed.tpu_connector', enable_permute_local_kv=False, kv_load_failure_policy='fail')}
+(APIServer pid=133398) WARNING 07-26 23:44:10 [envs.py:2069] Unknown vLLM environment variable detected: VLLM_BLOCK_SIZE
+(APIServer pid=133398) Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+(APIServer pid=133398) INFO 07-26 23:44:11 [model.py:619] Resolved architecture: Qwen3ForCausalLM
+(APIServer pid=133398) INFO 07-26 23:44:11 [model.py:1776] Using max model len 8192
+(APIServer pid=133398) INFO 07-26 23:44:11 [scheduler.py:252] Chunked prefill is enabled with max_num_batched_tokens=1024.
+(APIServer pid=133398) INFO 07-26 23:44:11 [vllm.py:1089] Asynchronous scheduling is enabled.
+(APIServer pid=133398) WARNING 07-26 23:44:11 [vllm.py:1191] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(APIServer pid=133398) INFO 07-26 23:44:11 [kernel.py:292] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+(APIServer pid=133398) INFO 07-26 23:44:11 [tpu_platform.py:233] Initialized sharding configuration: ShardingConfigManager(total_devices=1, sharding_strategy=ShardingStrategy(tensor_parallelism=1, expert_parallelism=1, sequence_parallelism=1, data_parallelism=1, attention_data_parallelism=1, attention_data_expert_parallelism=1, decode_context_parallelism=1), mm_encoder_tp_mode=weights, device_indexes=None)
+(APIServer pid=133398) INFO 07-26 23:44:11 [tpu_platform.py:320] Force using UniProcExecutor for JAX on single host without pipeline parallelism.
+(APIServer pid=133398) WARNING 07-26 23:44:11 [vllm.py:557] Model Runner V2 requires Triton; using the V1 model runner instead.
+(APIServer pid=133398) WARNING 07-26 23:44:11 [vllm.py:1587] Turning off hybrid kv cache manager because `--kv-transfer-config` selects a KV connector that does not support it. Impact: hybrid SSM models (e.g. Jamba, Bamba) require HMA and will fail at startup without it; models with sliding window attention will run with reduced performance. To add HMA support to a KV connector, subclass `SupportsHMA` defined in kv_connector/v1/base.py (for MultiConnector, all child connectors must support HMA).
+(APIServer pid=133398) INFO 07-26 23:44:11 [compilation.py:312] Enabled custom fusions: norm_quant, act_quant
+INFO 07-26 23:44:15 [__init__.py:76] TPU info: node_name=pd-flex-v6e-4-south3 | tpu_type=v6e-4 | worker_id=0 | num_chips=4 | num_cores_per_chip=1
+WARNING 07-26 23:44:15 [tpu_platform.py:408] Pin memory is not supported on TPU.
+INFO 07-26 23:44:19 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+INFO 07-26 23:44:20 [importing.py:53] Triton is installed but 0 active driver(s) found (expected 1). Disabling Triton to prevent runtime errors.
+WARNING 07-26 23:44:20 [importing.py:73] Triton is installed, but `triton.backends` could not be imported. Disabling Triton.
+INFO 07-26 23:44:20 [importing.py:88] Triton not installed or not compatible; certain GPU-related functions will not be available.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [attention_interface.py:56] Using default RPA kernel
+(EngineCore pid=134004) WARNING 07-26 23:44:21 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) WARNING 07-26 23:44:21 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=134004) WARNING 07-26 23:44:21 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=134004) WARNING 07-26 23:44:21 [interface.py:368] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_platform.py:177] Automatically using fp8_e5m2 for FP8 KV cache on TPU v6e.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.jax.utils.weight_utils.JaxDummyModelLoader'>` with load format `jax_dummy`
+(EngineCore pid=134004) INFO 07-26 23:44:21 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.common.pathways_dummy_loader.PathwaysDummyModelLoader'>` with load format `pathways_dummy`
+(EngineCore pid=134004) INFO 07-26 23:44:21 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.vllm.vllm_model_loader.IncrementalModelLoader'>` with load format `tpu_streaming_loader`
+(EngineCore pid=134004) WARNING 07-26 23:44:21 [__init__.py:101] Load format `runai_streamer` is already registered, and will be overwritten by the new loader class `<class 'tpu_inference.models.vllm.vllm_model_loader.RunaiIncrementalModelLoader'>`.
+(EngineCore pid=134004) INFO 07-26 23:44:21 [__init__.py:112] Registered model loader `<class 'tpu_inference.models.vllm.vllm_model_loader.RunaiIncrementalModelLoader'>` with load format `runai_streamer`
+(EngineCore pid=134004) INFO 07-26 23:44:21 [core.py:114] Initializing a V1 LLM engine (v0.25.0) with config: model='Qwen/Qwen3-4B', speculative_config=None, tokenizer='Qwen/Qwen3-4B', skip_tokenizer_init=False, tokenizer_mode=auto, revision=1cfa9a7208912126459214e8b04321603b3df60c, tokenizer_revision=1cfa9a7208912126459214e8b04321603b3df60c, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=8192, download_dir='/mnt/pd-disagg/cache/huggingface', load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=True, quantization=None, quantization_config=None, enforce_eager=False, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=None, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=Qwen/Qwen3-4B, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'eager', 'custom_ops': ['all'], 'ir_enable_torch_wrap': False, 'splitting_ops': ['vllm::unified_attention_with_output', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::qwen_gdn_attention_core', 'vllm::gdn_attention_core_xpu', 'vllm::olmo_hybrid_gdn_full_forward', 'vllm::kda_attention', 'vllm::sparse_attn_indexer', 'vllm::rocm_aiter_sparse_attn_indexer', 'vllm::deepseek_v4_attention', 'vllm::hpc_rope_norm_forward', 'vllm::unified_kv_cache_update', 'vllm::unified_mla_kv_cache_update'], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': None, 'compile_ranges_endpoints': [1024], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': None, 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False}, 'max_cudagraph_capture_size': None, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': True, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native']), enable_flashinfer_autotune=True, enable_cutedsl_warmup=True, moe_backend='auto', linear_backend='auto')
+(EngineCore pid=134004) INFO 07-26 23:44:21 [network_utils.py:205] Port 8400 is already in use, trying port 8401
+(EngineCore pid=134004) INFO 07-26 23:44:21 [tpu_worker.py:248] Restored EngineCore TPU affinity | source=parallel_config | TPU_VISIBLE_CHIPS=0 | TPU_CHIPS_PER_PROCESS_BOUNDS=1,1,1
+(EngineCore pid=134004) INFO 07-26 23:44:53 [parallel_state.py:1607] world_size=1 rank=0 local_rank=0 distributed_init_method=file:///tmp/tmpgn_fencw backend=gloo
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+(EngineCore pid=134004) INFO 07-26 23:44:53 [parallel_state.py:1942] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=134004) INFO 07-26 23:44:54 [tpu_runner.py:617] Init mesh | mesh=Mesh('data': 1, 'model': 1, axis_types=(Auto, Auto))
+(EngineCore pid=134004) INFO 07-26 23:44:54 [utils.py:210] Prepared token paddings: [16, 32, 64, 128, 256, 512, 1024]
+(EngineCore pid=134004) INFO 07-26 23:44:54 [utils.py:156] Prepared request paddings: [8, 16, 32, 64, 128, 256]
+(EngineCore pid=134004) INFO 07-26 23:44:54 [utils.py:175] Prepared attn request paddings: [256]
+(EngineCore pid=134004) INFO 07-26 23:44:54 [compilation_manager.py:63] Enabling JAX compile cache.
+(EngineCore pid=134004) INFO 07-26 23:44:54 [tpu_worker.py:408] Init worker | rank=0 | is_first_rank=True | is_last_rank=True | topology_order_id=0 | is_driver_worker=True | hbm=[(0.0, 31.25)]GiB |self.devices=[TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)] | total devices=[TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)] | local_devices=[TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]
+(EngineCore pid=134004) INFO 07-26 23:44:54 [model_loader.py:621] Loading model with MODEL_IMPL_TYPE=auto
+(EngineCore pid=134004) INFO 07-26 23:44:54 [model_loader.py:624] Resolved MODEL_IMPL_TYPE 'auto' to 'flax_nnx'
+(EngineCore pid=134004) INFO 07-26 23:44:54 [qwen3.py:92] Running with attention Q-Projection laid out as DNH
+(EngineCore pid=134004) INFO 07-26 23:44:56 [weight_utils.py:849] Filesystem type for checkpoints: EXT4. Checkpoint size: 7.49 GiB. Available RAM: 680.27 GiB.
+(EngineCore pid=134004) INFO 07-26 23:44:56 [weight_utils.py:872] Auto-prefetch is disabled because the filesystem (EXT4) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+(EngineCore pid=134004) Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
+(EngineCore pid=134004) Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:04<00:09,  4.57s/it]
+(EngineCore pid=134004) Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:10<00:05,  5.22s/it]
+(EngineCore pid=134004) Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:10<00:00,  2.94s/it]
+(EngineCore pid=134004) Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:10<00:00,  3.49s/it]
+(EngineCore pid=134004) 
+(EngineCore pid=134004) INFO 07-26 23:45:07 [default_loader.py:430] Loading weights took 10.48 seconds
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_runner.py:979] Cleared JIT caches after weight loading
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_runner.py:981] Init model | hbm=[(7.49, 31.25)]GiB
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_platform.py:399] Using cache_config.block_size: 128 instead of overriding with _align_hybrid_block_size() since we set mamba_page_size_padded in kv_cache_manager.py
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_worker.py:494] Memory statistics | total_hbm_limit_gb=31.25GiB | total_hbm_limit_cap_gb=9.37GiB | total_hbm_used_gb=7.49GiB | total_hbm_avail_gb=1.88GiB
+(EngineCore pid=134004) INFO 07-26 23:45:07 [kv_cache_utils.py:2168] GPU KV cache size: 13,696 tokens
+(EngineCore pid=134004) INFO 07-26 23:45:07 [kv_cache_utils.py:2169] Maximum concurrency for 8,192 tokens per request: 1.67x
+(EngineCore pid=134004) INFO 07-26 23:45:07 [factory.py:62] Creating v1 connector with name: TPUConnector and engine_id: b2000673-4621-4641-a70f-6db01e695f0e
+(EngineCore pid=134004) WARNING 07-26 23:45:07 [base.py:190] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_connector.py:646] TPUConnector Worker 0 --> zmq listener | sock_path=tcp://*:6100
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_connector.py:571] TPUConnector Worker --> init | ip=10.206.0.5 | kv_transfer_port=7100 | side_channel_port=6100
+(EngineCore pid=134004) INFO 07-26 23:45:07 [utils.py:51] Connectors do not specify a kv cache layout, defaulting to NHD.
+(EngineCore pid=134004) INFO 07-26 23:45:07 [kv_cache_manager.py:976] Hybrid KV cache layout: num_kv_cache_groups=1, num_kv_cache_tensors=36, kv_cache_config.num_blocks=107, duplicate_shared_layers=False
+(EngineCore pid=134004) INFO 07-26 23:45:07 [kv_cache_manager.py:1004] Init kv-cache | num_total_layers=36 | num_blocks=[107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107] | regular_attn_layers=36 | regular_attn_shape=(num_blocks, (128, 8, 2, 128)) | regular_attn_sharding=NamedSharding(mesh=Mesh('data': 1, 'model': 1, axis_types=(Auto, Auto)), spec=P('data', None, 'model'), memory_kind=device) | regular_attn_dtype=bfloat16 | hbm=[(9.37, 31.25)]Gb
+(EngineCore pid=134004) INFO 07-26 23:45:07 [tpu_connector.py:603] TPUConnector Worker --> register_runner | node_id=0 | ip=10.206.0.5 | kv_transfer_port=7100 | selective_pull=True
+(EngineCore pid=134004) INFO 07-26 23:45:08 [tpu_connector.py:635] TPUConnector Worker 0 --> KV start_transfer_server | addr=10.206.0.5:7100 | channel number=8
+(EngineCore pid=134004) INFO 07-26 23:45:08 [core.py:344] init engine (profile, create kv cache, warmup model) took 0.69 s
+(EngineCore pid=134004) INFO 07-26 23:45:09 [factory.py:62] Creating v1 connector with name: TPUConnector and engine_id: b2000673-4621-4641-a70f-6db01e695f0e
+(EngineCore pid=134004) WARNING 07-26 23:45:09 [base.py:190] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(EngineCore pid=134004) INFO 07-26 23:45:09 [tpu_connector.py:302] TPUConnectorScheduler --> kv_ip=10.206.0.5 | kv_port=7100
+(EngineCore pid=134004) WARNING 07-26 23:45:09 [vllm.py:557] Model Runner V2 requires Triton; using the V1 model runner instead.
+(EngineCore pid=134004) INFO 07-26 23:45:09 [vllm.py:1089] Asynchronous scheduling is enabled.
+(EngineCore pid=134004) WARNING 07-26 23:45:09 [vllm.py:1191] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(EngineCore pid=134004) INFO 07-26 23:45:09 [kernel.py:292] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+(EngineCore pid=134004) INFO 07-26 23:45:09 [tpu_platform.py:233] Initialized sharding configuration: ShardingConfigManager(total_devices=1, sharding_strategy=ShardingStrategy(tensor_parallelism=1, expert_parallelism=1, sequence_parallelism=1, data_parallelism=1, attention_data_parallelism=1, attention_data_expert_parallelism=1, decode_context_parallelism=1), mm_encoder_tp_mode=weights, device_indexes=None)
+(EngineCore pid=134004) INFO 07-26 23:45:09 [tpu_platform.py:320] Force using UniProcExecutor for JAX on single host without pipeline parallelism.
+(EngineCore pid=134004) INFO 07-26 23:45:09 [compilation.py:312] Enabled custom fusions: norm_quant, act_quant
+(APIServer pid=133398) INFO 07-26 23:45:09 [api_server.py:673] Supported tasks: ['generate']
+(APIServer pid=133398) WARNING 07-26 23:45:09 [model.py:1528] Default vLLM sampling parameters have been overridden by the model's `generation_config.json`: `{'temperature': 0.6, 'top_k': 20, 'top_p': 0.95}`. If this is not intended, please relaunch vLLM instance with `--generation-config vllm`.
+(APIServer pid=133398) INFO 07-26 23:45:11 [hf.py:540] Detected the chat template content format to be 'string'. You can set `--chat-template-content-format` to override this.
+(APIServer pid=133398) INFO 07-26 23:45:11 [api_server.py:677] Starting vLLM server on http://0.0.0.0:8400
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:37] Available routes are:
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /openapi.json, Methods: GET, HEAD
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /docs, Methods: GET, HEAD
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /docs/oauth2-redirect, Methods: GET, HEAD
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /redoc, Methods: GET, HEAD
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /load, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /version, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /health, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /metrics, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /tokenize, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /detokenize, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/models, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /ping, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /ping, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /invocations, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/chat/completions, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/chat/completions/batch, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/responses, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/responses/{response_id}, Methods: GET
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/responses/{response_id}/cancel, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/completions, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/messages, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/messages/count_tokens, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /generative_scoring, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /scale_elastic_ep, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /is_scaling_elastic_ep, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/chat/completions/render, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/completions/render, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/chat/completions/derender, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /v1/completions/derender, Methods: POST
+(APIServer pid=133398) INFO 07-26 23:45:11 [launcher.py:46] Route: /inference/v1/generate, Methods: POST
+(APIServer pid=133398) INFO:     Started server process [133398]
+(APIServer pid=133398) INFO:     Waiting for application startup.
+(APIServer pid=133398) INFO:     Application startup complete.
+(APIServer pid=133398) INFO:     127.0.0.1:49060 - "GET /health HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:49 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-warmup-base-0-8372c624': SendMeta(uuid=402259734843601, local_block_ids=[1, 2, 3, 4], expiration_time=10238.387661014)} | kv_transfer_params={'uuid': 402259734843601, 'remote_block_ids': [1, 2, 3, 4], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:45:49 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-warmup-base-0-8372c624': SendMeta(uuid=402259734843601, local_block_ids=[1, 2, 3, 4], expiration_time=10238.387661014)}
+(EngineCore pid=134004) INFO 07-26 23:45:49 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-warmup-base-0-8372c624 waiting for decoder selective pull plan total_blocks=4
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:49 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-warmup-base-0-8372c624 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:49 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=402259734843601 service_ms=441.827
+(EngineCore pid=134004) INFO 07-26 23:45:50 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-warmup-base-0-8372c624 | uuid=402259734843601 | received_at=10059.652033366
+(EngineCore pid=134004) INFO 07-26 23:45:50 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-warmup-base-0-8372c624'}
+(APIServer pid=133398) INFO 07-26 23:45:51 [loggers.py:273] Engine 000: Avg prompt throughput: 51.2 tokens/s, Avg generation throughput: 0.1 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%, External prefix cache hit rate: 0.0%
+(APIServer pid=133398) INFO 07-26 23:45:51 [metrics.py:103] KV Transfer metrics: Avg D2H slice time (ms)=0.0, P90 D2H slice time (ms)=0.0, Avg D2H transfer time (ms)=0.0, P90 D2H transfer time (ms)=0.0, Num successful transfers=0, Num failed transfers=[], Avg KV transfer prepare time (ms)=0.0, P90 KV transfer prepare time (ms)=0.0, Avg KV transfer time (ms)=0.0, P90 KV transfer time (ms)=0.0, Avg MB per transfer=0, Throughput (MB/s)=0, Avg requests being pulled=0.0, Avg requests waiting to be pulled=0.996
+(EngineCore pid=134004) INFO 07-26 23:45:55 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-warmup-variant-0-97f7a701': SendMeta(uuid=188585510258241, local_block_ids=[1, 2, 3, 5], expiration_time=10244.477930341)} | kv_transfer_params={'uuid': 188585510258241, 'remote_block_ids': [1, 2, 3, 5], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:45:55 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-warmup-variant-0-97f7a701': SendMeta(uuid=188585510258241, local_block_ids=[1, 2, 3, 5], expiration_time=10244.477930341)}
+(EngineCore pid=134004) INFO 07-26 23:45:55 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-warmup-variant-0-97f7a701 waiting for decoder selective pull plan total_blocks=4
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:55 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-warmup-variant-0-97f7a701 selective pull ready requested_blocks=1 total_blocks=4 transfer_blocks=1 saved_blocks=3
+(EngineCore pid=134004) INFO 07-26 23:45:55 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=188585510258241 service_ms=288.341
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-warmup-variant-0-97f7a701 | uuid=188585510258241 | received_at=10065.485325295
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-warmup-variant-0-97f7a701'}
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-0-0-b4028340': SendMeta(uuid=935803185342337, local_block_ids=[6, 7, 8, 9], expiration_time=10245.631294045)} | kv_transfer_params={'uuid': 935803185342337, 'remote_block_ids': [6, 7, 8, 9], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-0-0-b4028340': SendMeta(uuid=935803185342337, local_block_ids=[6, 7, 8, 9], expiration_time=10245.631294045)}
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-0-0-b4028340 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-0-0-b4028340 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=935803185342337 service_ms=1.072
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-0-0-b4028340 | uuid=935803185342337 | received_at=10065.657016670
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-0-0-b4028340'}
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-1-0-97e9de90': SendMeta(uuid=231408549553881, local_block_ids=[10, 11, 12, 13], expiration_time=10245.80241203)} | kv_transfer_params={'uuid': 231408549553881, 'remote_block_ids': [10, 11, 12, 13], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-1-0-97e9de90': SendMeta(uuid=231408549553881, local_block_ids=[10, 11, 12, 13], expiration_time=10245.80241203)}
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-1-0-97e9de90 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-1-0-97e9de90 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=231408549553881 service_ms=1.078
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-1-0-97e9de90 | uuid=231408549553881 | received_at=10065.828753955
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-1-0-97e9de90'}
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-2-0-8e45a26e': SendMeta(uuid=536090490064821, local_block_ids=[14, 15, 16, 17], expiration_time=10245.974526265)} | kv_transfer_params={'uuid': 536090490064821, 'remote_block_ids': [14, 15, 16, 17], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-2-0-8e45a26e': SendMeta(uuid=536090490064821, local_block_ids=[14, 15, 16, 17], expiration_time=10245.974526265)}
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-2-0-8e45a26e waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-2-0-8e45a26e selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=536090490064821 service_ms=0.995
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-2-0-8e45a26e | uuid=536090490064821 | received_at=10066.000864280
+(EngineCore pid=134004) INFO 07-26 23:45:56 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-2-0-8e45a26e'}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-3-0-844e75ad': SendMeta(uuid=311252696690225, local_block_ids=[18, 19, 20, 21], expiration_time=10246.14791167)} | kv_transfer_params={'uuid': 311252696690225, 'remote_block_ids': [18, 19, 20, 21], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-3-0-844e75ad': SendMeta(uuid=311252696690225, local_block_ids=[18, 19, 20, 21], expiration_time=10246.14791167)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-3-0-844e75ad waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-3-0-844e75ad selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=311252696690225 service_ms=0.968
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-3-0-844e75ad | uuid=311252696690225 | received_at=10066.173200985
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-3-0-844e75ad'}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-4-0-b6ce8365': SendMeta(uuid=909229710844449, local_block_ids=[22, 23, 24, 25], expiration_time=10246.319295485)} | kv_transfer_params={'uuid': 909229710844449, 'remote_block_ids': [22, 23, 24, 25], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-4-0-b6ce8365': SendMeta(uuid=909229710844449, local_block_ids=[22, 23, 24, 25], expiration_time=10246.319295485)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-4-0-b6ce8365 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-4-0-b6ce8365 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=909229710844449 service_ms=0.964
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-4-0-b6ce8365 | uuid=909229710844449 | received_at=10066.344552350
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-4-0-b6ce8365'}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-5-0-9cd345a6': SendMeta(uuid=129378915006209, local_block_ids=[26, 27, 28, 29], expiration_time=10246.49024048)} | kv_transfer_params={'uuid': 129378915006209, 'remote_block_ids': [26, 27, 28, 29], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-5-0-9cd345a6': SendMeta(uuid=129378915006209, local_block_ids=[26, 27, 28, 29], expiration_time=10246.49024048)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-5-0-9cd345a6 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-5-0-9cd345a6 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=129378915006209 service_ms=0.987
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-5-0-9cd345a6 | uuid=129378915006209 | received_at=10066.516724045
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-5-0-9cd345a6'}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-6-0-9044ab74': SendMeta(uuid=1024736438750241, local_block_ids=[30, 31, 32, 33], expiration_time=10246.662115755)} | kv_transfer_params={'uuid': 1024736438750241, 'remote_block_ids': [30, 31, 32, 33], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-6-0-9044ab74': SendMeta(uuid=1024736438750241, local_block_ids=[30, 31, 32, 33], expiration_time=10246.662115755)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-6-0-9044ab74 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-6-0-9044ab74 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=1024736438750241 service_ms=0.992
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-6-0-9044ab74 | uuid=1024736438750241 | received_at=10066.688586940
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-6-0-9044ab74'}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-prime-7-0-89aed835': SendMeta(uuid=613204501516749, local_block_ids=[34, 35, 36, 37], expiration_time=10246.8343094)} | kv_transfer_params={'uuid': 613204501516749, 'remote_block_ids': [34, 35, 36, 37], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-prime-7-0-89aed835': SendMeta(uuid=613204501516749, local_block_ids=[34, 35, 36, 37], expiration_time=10246.8343094)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-7-0-89aed835 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-prime-7-0-89aed835 selective pull ready requested_blocks=4 total_blocks=4 transfer_blocks=4 saved_blocks=0
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=613204501516749 service_ms=1.019
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-prime-7-0-89aed835 | uuid=613204501516749 | received_at=10066.859789045
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-prime-7-0-89aed835'}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-0-0-be1bc9fe': SendMeta(uuid=907818534513581, local_block_ids=[6, 7, 8, 38], expiration_time=10247.006372055)} | kv_transfer_params={'uuid': 907818534513581, 'remote_block_ids': [6, 7, 8, 38], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:42494 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-variant-0-0-be1bc9fe': SendMeta(uuid=907818534513581, local_block_ids=[6, 7, 8, 38], expiration_time=10247.006372055)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-0-0-be1bc9fe waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-1-0-82e8bb42': SendMeta(uuid=1023793592999137, local_block_ids=[10, 11, 12, 39], expiration_time=10247.017844172)} | kv_transfer_params={'uuid': 1023793592999137, 'remote_block_ids': [10, 11, 12, 39], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(APIServer pid=133398) INFO:     10.206.0.3:58684 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:736] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-0-0-be1bc9fe selective pull ready requested_blocks=1 total_blocks=4 transfer_blocks=1 saved_blocks=3
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:666] TPUConnector Worker 0 --> selective control service uuid=907818534513581 service_ms=6.139
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:687] TPUConnector Worker 0 --> zmq recieve | req_id=cmpl-stress-variant-0-0-be1bc9fe | uuid=907818534513581 | received_at=10067.034671089
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675] TPUConnector Worker 0 --> selective pull plan failed
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675] Traceback (most recent call last):
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675]   File "/mnt/pd-disagg/src/tpu-inference-pd-int4/tpu_inference/distributed/tpu_connector.py", line 665, in _pull_notify_listener
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675]     self._prepare_selective_kv(uuid, requested_block_ids)
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675]   File "/mnt/pd-disagg/src/tpu-inference-pd-int4/tpu_inference/distributed/tpu_connector.py", line 716, in _prepare_selective_kv
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675]     raise KeyError(f"no pending selective pull for uuid={uuid}")
+(EngineCore pid=134004) ERROR 07-26 23:45:57 [tpu_connector.py:675] KeyError: 'no pending selective pull for uuid=1023793592999137'
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-variant-1-0-82e8bb42': SendMeta(uuid=1023793592999137, local_block_ids=[10, 11, 12, 39], expiration_time=10247.017844172)}
+(EngineCore pid=134004) INFO 07-26 23:45:57 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-1-0-82e8bb42 waiting for decoder selective pull plan total_blocks=4
+(APIServer pid=133398) INFO 07-26 23:46:01 [loggers.py:273] Engine 000: Avg prompt throughput: 447.9 tokens/s, Avg generation throughput: 1.1 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 7.5%, Prefix cache hit rate: 18.8%, External prefix cache hit rate: 0.0%
+(APIServer pid=133398) INFO 07-26 23:46:01 [metrics.py:103] KV Transfer metrics: Avg D2H slice time (ms)=0.0, P90 D2H slice time (ms)=0.0, Avg D2H transfer time (ms)=0.0, P90 D2H transfer time (ms)=0.0, Num successful transfers=0, Num failed transfers=[], Avg KV transfer prepare time (ms)=0.0, P90 KV transfer prepare time (ms)=0.0, Avg KV transfer time (ms)=0.0, P90 KV transfer time (ms)=0.0, Avg MB per transfer=0, Throughput (MB/s)=0, Avg requests being pulled=0.0, Avg requests waiting to be pulled=0.966
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:1142] Worker 0 -->  done_sending={'cmpl-stress-variant-0-0-be1bc9fe'}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584)} | kv_transfer_params={'uuid': 414890153636557, 'remote_block_ids': [30, 31, 32, 40], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584), 'cmpl-stress-variant-2-0-a9a82f18': SendMeta(uuid=722617946061597, local_block_ids=[14, 15, 16, 41], expiration_time=10251.070690124)} | kv_transfer_params={'uuid': 722617946061597, 'remote_block_ids': [14, 15, 16, 41], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584), 'cmpl-stress-variant-2-0-a9a82f18': SendMeta(uuid=722617946061597, local_block_ids=[14, 15, 16, 41], expiration_time=10251.070690124), 'cmpl-stress-variant-4-0-92170796': SendMeta(uuid=1000126707083685, local_block_ids=[22, 23, 24, 42], expiration_time=10251.070756854)} | kv_transfer_params={'uuid': 1000126707083685, 'remote_block_ids': [22, 23, 24, 42], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584), 'cmpl-stress-variant-2-0-a9a82f18': SendMeta(uuid=722617946061597, local_block_ids=[14, 15, 16, 41], expiration_time=10251.070690124), 'cmpl-stress-variant-4-0-92170796': SendMeta(uuid=1000126707083685, local_block_ids=[22, 23, 24, 42], expiration_time=10251.070756854), 'cmpl-stress-variant-5-0-99eb0a52': SendMeta(uuid=34720557760541, local_block_ids=[26, 27, 28, 43], expiration_time=10251.070825344)} | kv_transfer_params={'uuid': 34720557760541, 'remote_block_ids': [26, 27, 28, 43], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584), 'cmpl-stress-variant-2-0-a9a82f18': SendMeta(uuid=722617946061597, local_block_ids=[14, 15, 16, 41], expiration_time=10251.070690124), 'cmpl-stress-variant-4-0-92170796': SendMeta(uuid=1000126707083685, local_block_ids=[22, 23, 24, 42], expiration_time=10251.070756854), 'cmpl-stress-variant-5-0-99eb0a52': SendMeta(uuid=34720557760541, local_block_ids=[26, 27, 28, 43], expiration_time=10251.070825344), 'cmpl-stress-variant-3-0-8971d1d9': SendMeta(uuid=449389744009689, local_block_ids=[18, 19, 20, 44], expiration_time=10251.070879774)} | kv_transfer_params={'uuid': 449389744009689, 'remote_block_ids': [18, 19, 20, 44], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:499] TPUConnector Scheduler ---->  generated reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584), 'cmpl-stress-variant-2-0-a9a82f18': SendMeta(uuid=722617946061597, local_block_ids=[14, 15, 16, 41], expiration_time=10251.070690124), 'cmpl-stress-variant-4-0-92170796': SendMeta(uuid=1000126707083685, local_block_ids=[22, 23, 24, 42], expiration_time=10251.070756854), 'cmpl-stress-variant-5-0-99eb0a52': SendMeta(uuid=34720557760541, local_block_ids=[26, 27, 28, 43], expiration_time=10251.070825344), 'cmpl-stress-variant-3-0-8971d1d9': SendMeta(uuid=449389744009689, local_block_ids=[18, 19, 20, 44], expiration_time=10251.070879774), 'cmpl-stress-variant-7-0-9baed409': SendMeta(uuid=805278196750945, local_block_ids=[34, 35, 36, 45], expiration_time=10251.070933444)} | kv_transfer_params={'uuid': 805278196750945, 'remote_block_ids': [34, 35, 36, 45], 'remote_host': '10.206.0.5', 'remote_port': '7100', 'selective_pull': True}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:751] TPUConnector Worker 0 -->  reqs_to_send={'cmpl-stress-variant-6-0-8b8cfe6f': SendMeta(uuid=414890153636557, local_block_ids=[30, 31, 32, 40], expiration_time=10251.070549584), 'cmpl-stress-variant-2-0-a9a82f18': SendMeta(uuid=722617946061597, local_block_ids=[14, 15, 16, 41], expiration_time=10251.070690124), 'cmpl-stress-variant-4-0-92170796': SendMeta(uuid=1000126707083685, local_block_ids=[22, 23, 24, 42], expiration_time=10251.070756854), 'cmpl-stress-variant-5-0-99eb0a52': SendMeta(uuid=34720557760541, local_block_ids=[26, 27, 28, 43], expiration_time=10251.070825344), 'cmpl-stress-variant-3-0-8971d1d9': SendMeta(uuid=449389744009689, local_block_ids=[18, 19, 20, 44], expiration_time=10251.070879774), 'cmpl-stress-variant-7-0-9baed409': SendMeta(uuid=805278196750945, local_block_ids=[34, 35, 36, 45], expiration_time=10251.070933444)}
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-6-0-8b8cfe6f waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-2-0-a9a82f18 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-4-0-92170796 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-5-0-99eb0a52 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-3-0-8971d1d9 waiting for decoder selective pull plan total_blocks=4
+(EngineCore pid=134004) INFO 07-26 23:46:01 [tpu_connector.py:824] TPUConnector Worker 0 --> req_id=cmpl-stress-variant-7-0-9baed409 waiting for decoder selective pull plan total_blocks=4
+(APIServer pid=133398) INFO:     10.206.0.3:58720 - "POST /v1/completions HTTP/1.1" 200 OK
+(APIServer pid=133398) INFO:     10.206.0.3:58694 - "POST /v1/completions HTTP/1.1" 200 OK
+(APIServer pid=133398) INFO:     10.206.0.3:58704 - "POST /v1/completions HTTP/1.1" 200 OK
+(APIServer pid=133398) INFO:     10.206.0.3:58718 - "POST /v1/completions HTTP/1.1" 200 OK
+(APIServer pid=133398) INFO:     10.206.0.3:58698 - "POST /v1/completions HTTP/1.1" 200 OK
+(APIServer pid=133398) INFO:     10.206.0.3:58730 - "POST /v1/completions HTTP/1.1" 200 OK
+(APIServer pid=133398) INFO 07-26 23:46:11 [loggers.py:273] Engine 000: Avg prompt throughput: 76.8 tokens/s, Avg generation throughput: 0.6 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 26.4%, Prefix cache hit rate: 37.5%, External prefix cache hit rate: 0.0%
+(APIServer pid=133398) INFO 07-26 23:46:11 [metrics.py:103] KV Transfer metrics: Avg D2H slice time (ms)=0.0, P90 D2H slice time (ms)=0.0, Avg D2H transfer time (ms)=0.0, P90 D2H transfer time (ms)=0.0, Num successful transfers=0, Num failed transfers=[], Avg KV transfer prepare time (ms)=0.0, P90 KV transfer prepare time (ms)=0.0, Avg KV transfer time (ms)=0.0, P90 KV transfer time (ms)=0.0, Avg MB per transfer=0, Throughput (MB/s)=0, Avg requests being pulled=0.0, Avg requests waiting to be pulled=6.998

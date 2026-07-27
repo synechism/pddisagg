@@ -1,0 +1,51 @@
+2026-07-26T19:57:38+00:00
+Linux t1v-n-004cd4bf-w-0 6.5.0-1013-gcp #13~22.04.1-Ubuntu SMP Wed Jan 24 23:39:40 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+
+Architecture:                       x86_64
+CPU op-mode(s):                     32-bit, 64-bit
+Address sizes:                      48 bits physical, 48 bits virtual
+Byte Order:                         Little Endian
+CPU(s):                             24
+On-line CPU(s) list:                0-23
+Vendor ID:                          AuthenticAMD
+Model name:                         AMD EPYC 7B13
+CPU family:                         25
+Model:                              1
+Thread(s) per core:                 2
+Core(s) per socket:                 12
+Socket(s):                          1
+Stepping:                           0
+BogoMIPS:                           4899.99
+Flags:                              fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext invpcid_single ssbd ibrs ibpb stibp vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 clzero xsaveerptr arat umip vaes vpclmulqdq rdpid fsrm
+Hypervisor vendor:                  KVM
+Virtualization type:                full
+L1d cache:                          384 KiB (12 instances)
+L1i cache:                          384 KiB (12 instances)
+L2 cache:                           6 MiB (12 instances)
+L3 cache:                           64 MiB (2 instances)
+NUMA node(s):                       1
+NUMA node0 CPU(s):                  0-23
+Vulnerability Gather data sampling: Not affected
+Vulnerability Itlb multihit:        Not affected
+Vulnerability L1tf:                 Not affected
+Vulnerability Mds:                  Not affected
+Vulnerability Meltdown:             Not affected
+Vulnerability Mmio stale data:      Not affected
+Vulnerability Retbleed:             Not affected
+Vulnerability Spec rstack overflow: Mitigation; safe RET
+Vulnerability Spec store bypass:    Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:           Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:           Mitigation; Retpolines, IBPB conditional, IBRS_FW, STIBP conditional, RSB filling, PBRSB-eIBRS Not affected
+Vulnerability Srbds:                Not affected
+Vulnerability Tsx async abort:      Not affected
+
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb        196G  9.7G  187G   5% /mnt/pd-disagg
+
+INFO 07-26 19:57:43 [__init__.py:76] TPU info: node_name=pd-phase0-v5e-1 | tpu_type=v5litepod-1 | worker_id=0 | num_chips=1 | num_cores_per_chip=1
+WARNING 07-26 19:57:44 [tpu_platform.py:408] Pin memory is not supported on TPU.
+vllm=0.25.0
+tpu_inference=0.25.0
+jax=0.10.2
+platform=TPU V5E
+devices=[TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]

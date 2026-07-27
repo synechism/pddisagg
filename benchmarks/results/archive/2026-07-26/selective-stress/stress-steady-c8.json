@@ -1,0 +1,89 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "endpoint": "http://127.0.0.1:9000",
+  "cases": 8,
+  "case_offset": 6,
+  "concurrency": 8,
+  "input_tokens": 512,
+  "prefix_tokens": [
+    384
+  ],
+  "output_tokens": 16,
+  "primed": true,
+  "warmed_up": true,
+  "burst_s": 18.09330206300001,
+  "successful": 0,
+  "exact_matches": 0,
+  "latency_ms": {
+    "p50": null,
+    "p95": null,
+    "p99": null,
+    "max": null
+  },
+  "results": [
+    {
+      "status": "error",
+      "elapsed_s": 0.0456339400006982,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 6,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.084873812000296,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 7,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.083911403000457,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 8,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.089728361999732,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 9,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.090028822000022,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 10,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.091444464000233,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 11,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.0883009019999,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 12,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    },
+    {
+      "status": "error",
+      "elapsed_s": 18.087311113000396,
+      "error": "HTTPStatusError: Server error '502 Bad Gateway' for url 'http://127.0.0.1:9000/v1/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+      "case_id": 13,
+      "prefix_tokens": 384,
+      "matches_expected": false
+    }
+  ]
+}

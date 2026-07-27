@@ -1,0 +1,111 @@
+{
+  "model": "Qwen/Qwen3-4B",
+  "endpoint": "http://127.0.0.1:9000",
+  "pairs": [
+    {
+      "pair_index": 0,
+      "input_tokens": 512,
+      "prefix_tokens": 384,
+      "output_token_ids": [
+        18662,
+        18,
+        16,
+        17,
+        2266,
+        16,
+        18662,
+        18,
+        16,
+        17,
+        2266,
+        16,
+        18662,
+        18,
+        16,
+        17
+      ],
+      "output_sha256": "31bbe382ce2b5b8dbde4b85ab82d22c64a2b29d05f3a6ef7e187de650ca4662e",
+      "matches_expected": true,
+      "total_s": 3.2820709999996325
+    },
+    {
+      "pair_index": 1,
+      "input_tokens": 512,
+      "prefix_tokens": 384,
+      "output_token_ids": [
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18
+      ],
+      "output_sha256": "dec84bc431e1327f654824c51862eae45a5a0204580d17206edc823aa3e3e81d",
+      "matches_expected": true,
+      "total_s": 0.16150509799990687
+    },
+    {
+      "pair_index": 2,
+      "input_tokens": 512,
+      "prefix_tokens": 384,
+      "output_token_ids": [
+        18,
+        18,
+        18,
+        18662,
+        2266,
+        16,
+        15,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18,
+        18
+      ],
+      "output_sha256": "e7f6122f6e1610b7d38135d62c59a4844b3a4a8737e8bda77a837521e1f66c83",
+      "matches_expected": true,
+      "total_s": 0.16156648000014684
+    },
+    {
+      "pair_index": 3,
+      "input_tokens": 512,
+      "prefix_tokens": 384,
+      "output_token_ids": [
+        2266,
+        16,
+        18,
+        16,
+        20,
+        3950,
+        16,
+        20,
+        18,
+        20,
+        3950,
+        18,
+        2266,
+        20,
+        23,
+        19
+      ],
+      "output_sha256": "e793f620e0ea020cd9e5f34f57d29676700df1da26c2a522859e973b53bd70f5",
+      "matches_expected": true,
+      "total_s": 0.16128685500007123
+    }
+  ],
+  "all_match": true
+}

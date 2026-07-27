@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "run_id": "691c7750d69a",
+  "created_at": "2026-07-26T21:08:06.334324+00:00",
+  "config": {
+    "endpoint": "http://10.206.0.5:8000",
+    "model": "Qwen/Qwen3-4B",
+    "input_lengths": [
+      512
+    ],
+    "output_lengths": [
+      64
+    ],
+    "request_count": 20,
+    "arrival_rate": 2.0,
+    "max_concurrency": 64,
+    "warmup_requests": 1,
+    "seed": 2003,
+    "timeout_s": 600.0
+  },
+  "token_pool_size": 35104,
+  "raw_records": "/home/abhisiripurapu/pd-results/phase1-baseline-i512-o64-r2/run-3.jsonl",
+  "summary": {
+    "request_count": 20,
+    "success_count": 20,
+    "error_count": 0,
+    "ttft_s": {
+      "count": 20,
+      "median": 0.02320707550006773,
+      "p90": 0.03625110100006168,
+      "minimum": 0.020100381000020207,
+      "maximum": 0.037554632999899695
+    },
+    "total_s": {
+      "count": 20,
+      "median": 0.22403797900005884,
+      "p90": 0.2369884435001268,
+      "minimum": 0.21258408999983658,
+      "maximum": 0.24391587700006312
+    },
+    "itl_s": {
+      "count": 1260,
+      "median": 0.003071259499961343,
+      "p90": 0.00335899699998663,
+      "minimum": 0.001690199999984543,
+      "maximum": 0.009153470000001107
+    },
+    "itl_valid_request_count": 20
+  }
+}

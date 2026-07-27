@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "timestamp_unix_seconds": 1785095928.3127654,
+  "host": "t1v-n-004cd4bf-w-0",
+  "jax_version": "0.10.2",
+  "devices": [
+    "TPU_0(process=0,(0,0,0,0))"
+  ],
+  "device_count": 1,
+  "size_mib_per_device": 128,
+  "repetitions": 10,
+  "measurement_notes": {
+    "hbm": "Aggregate logical bytes count two operand reads and one result write per device.",
+    "ici": "Aggregate payload bytes count one outgoing buffer per device; this is not doubled for simultaneous receive traffic."
+  },
+  "hbm_triad": {
+    "logical_bytes_per_iteration": 402653184,
+    "duration_seconds": {
+      "samples": [
+        0.000830290999999761,
+        0.000766230000010637,
+        0.0007563599999684811,
+        0.0007569800000055693,
+        0.0007613599999558573,
+        0.0007571099999950093,
+        0.000752019999993081,
+        0.0007537299999853531,
+        0.0007532800000262796,
+        0.0007558499999618107
+      ],
+      "median": 0.0007566699999870252,
+      "p90": 0.0007726361000095494,
+      "minimum": 0.000752019999993081,
+      "maximum": 0.000830290999999761
+    },
+    "payload_gbps": {
+      "samples": [
+        484.9542919291139,
+        525.4991112256245,
+        532.3565286593412,
+        531.9205051613485,
+        528.8604392447007,
+        531.829171458116,
+        535.4288237064235,
+        534.214087283012,
+        534.5332200323288,
+        532.7157293382868
+      ],
+      "median": 532.1385169103448,
+      "p90": 534.6227803997383,
+      "minimum": 484.9542919291139,
+      "maximum": 535.4288237064235
+    }
+  },
+  "ici_ring": null
+}
