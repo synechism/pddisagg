@@ -14,6 +14,13 @@ The new protocol implements that side channel:
 - decode pulls and inserts only those blocks;
 - full hits release producer state without a transfer;
 - transfer shapes are power-of-two bucketed to bound JAX recompilation;
+- producer readiness is asynchronous, so cold JAX gathers cannot block the
+  side-channel listener or make concurrent plans look missing;
+- producer and model-forward KV-cache access is serialized to prevent a
+  background gather racing donated JAX buffers;
+- early decode plans retry while producer metadata is still registering;
+- transfer failures are scoped to one request instead of killing EngineCore;
+- the router retries a failed remote-KV decode once as a fresh local request;
 - spawned EngineCore processes restore the `--device-ids` TPU affinity before
   their first JAX device query.
 
@@ -81,14 +88,23 @@ stepwise.
 
 ## Correctness and provenance
 
-- `42` connector tests passed on the TPU VM's vLLM/JAX environment.
+- `46` connector tests and `11` runner tests passed on the TPU VM's
+  vLLM/JAX environment.
 - All optimized benchmark outputs matched stock token-for-token.
+- A forced-expiration run returned a request-scoped decode `500`; the router
+  retried locally, returned `200`, and matched a direct local reference
+  token-for-token while both engines stayed healthy.
+- A final warm concurrency-8 production run completed `8/8` requests at
+  `277.2 ms` p50 and `279.1 ms` p95. Each trace transferred one of four
+  blocks; exactness was intentionally reported as `null` because that stress
+  run did not supply a reference file.
 - A separate transfer-only INT4 experiment was rejected and removed because it
   changed outputs and was slower on the same-host path.
 - The final branch starts at upstream tag `v0.25.0` and contains only:
-  `afac0f54`, `69ba34f4`, and `b77ea5fb`.
+  `afac0f54`, `69ba34f4`, `b77ea5fb`, and `cae7bdb4`.
 - A fresh fetch and search across upstream remote refs found no implementation
   of this TPU selective-pull protocol.
 
-The live stack was left running with `tpu_kv_selective_pull=true` and prefix
-caching enabled.
+The live stack was left running with `tpu_kv_selective_pull=true`, prefix
+caching enabled, a 180-second lease, request failure policy `fail`, and
+router-side fresh local retry.

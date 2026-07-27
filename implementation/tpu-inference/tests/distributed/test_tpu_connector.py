@@ -124,6 +124,10 @@ class TestTPUConnector(unittest.TestCase):
         connector.get_finished(set())
         mock_worker_instance.get_finished.assert_called_once_with()
 
+        connector.get_block_ids_with_load_errors()
+        mock_worker_instance.get_block_ids_with_load_errors.assert_called_once_with(
+        )
+
 
 class TestTPUConnectorScheduler(unittest.TestCase):
 
@@ -472,6 +476,8 @@ class TestTPUConnectorWorker(unittest.TestCase):
         self.vllm_config.kv_transfer_config.is_kv_producer = True
         worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
         worker.runner = MagicMock()
+        worker.runner.kv_caches = ["cache-layer"]
+        worker.runner.kv_cache_lock = None
         worker.mesh = MagicMock()
         worker.kv_transfer_server = MagicMock()
         worker.reqs_pending_pull[7] = (
@@ -487,12 +493,88 @@ class TestTPUConnectorWorker(unittest.TestCase):
 
         self.all_mocks["device_array"].assert_called_once()
         self.all_mocks["select_from_kv_caches"].assert_called_once_with(
-            worker.runner.kv_caches,
+            ["cache-layer"],
             self.all_mocks["device_array"].return_value)
         worker.kv_transfer_server.await_pull.assert_called_once_with(
             7, "selected-kv")
         self.assertEqual(worker.reqs_wait_pull["req-selective"][0],
                          "selected-kv")
+        self.assertEqual(worker._get_selective_plan_status(7),
+                         ("ready", None))
+
+    def test_selective_plan_is_pending_until_worker_registration(self):
+        self.vllm_config.kv_transfer_config.is_kv_producer = True
+        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
+        self.all_mocks["time"].perf_counter.return_value = 10.0
+
+        self.assertEqual(worker._get_selective_plan_status(7),
+                         ("pending", None))
+
+        send_meta = tpu_connector.SendMeta(uuid=7,
+                                           local_block_ids=[10, 11],
+                                           expiration_time=100)
+        worker.selective_pull = True
+        worker._prepare_kv_and_wait("req-early", send_meta)
+
+        self.assertEqual(worker._get_selective_plan_status(7),
+                         ("prepare", None))
+
+    def test_selective_dispatch_offloads_multiple_preparations(self):
+        self.vllm_config.kv_transfer_config.is_kv_producer = True
+        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
+        worker.selective_pull = True
+        self.all_mocks["time"].perf_counter.return_value = 10.0
+        for uuid in (7, 8):
+            worker._prepare_kv_and_wait(
+                f"req-{uuid}",
+                tpu_connector.SendMeta(uuid=uuid,
+                                       local_block_ids=[10, 11],
+                                       expiration_time=100),
+            )
+
+        futures = [MagicMock(), MagicMock()]
+        worker.selective_prepare_executor.submit.side_effect = futures
+        sock = MagicMock()
+        pending_responses = {}
+
+        for uuid in (7, 8):
+            worker._dispatch_selective_plan(
+                sock,
+                f"client-{uuid}".encode(),
+                ('{"action":"prepare","uuid":%d,'
+                 '"remote_block_ids":[11]}') % uuid,
+                pending_responses,
+            )
+
+        self.assertEqual(len(pending_responses), 2)
+        self.assertEqual(worker.selective_prepare_executor.submit.call_count,
+                         2)
+        sock.send_multipart.assert_not_called()
+
+    def test_request_selective_plan_retries_pending_response(self):
+        self.vllm_config.kv_transfer_config.is_kv_producer = False
+        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
+        worker._selective_registration_timeout = MagicMock(return_value=5.0)
+        self.all_mocks["time"].perf_counter.side_effect = [0.0, 0.0, 0.001]
+        socket = self.all_mocks["make_zmq_socket"].return_value
+        socket.recv_json.side_effect = [{
+            "status": "pending"
+        }, {
+            "status": "ready"
+        }]
+        load_meta = tpu_connector.LoadMeta(
+            uuid=7,
+            local_block_ids=[1],
+            remote_block_ids=[11],
+            remote_host="host",
+            remote_port=123,
+            selective_pull=True,
+        )
+
+        worker._request_selective_pull_plan(load_meta)
+
+        self.assertEqual(socket.send_json.call_count, 2)
+        self.all_mocks["time"].sleep.assert_called_once()
 
     def test_process_send_load_for_consumer_loading(self):
         """Tests process_send_load for a consumer that needs to load KV."""
@@ -595,6 +677,27 @@ class TestTPUConnectorWorker(unittest.TestCase):
                          ('kv_data', 'indices', [1]))
         self.all_mocks['insert_kv_chunks'].assert_not_called()
 
+    def test_get_finished_pull_failure_recomputes_invalid_blocks(self):
+        self.vllm_config.kv_transfer_config.is_kv_producer = False
+        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
+
+        mock_future = MagicMock()
+        mock_future.done.return_value = True
+        mock_future.result.side_effect = RuntimeError("producer expired")
+        worker.reqs_pulling = {
+            "req-failed": [mock_future, None, [4, 5]]
+        }
+
+        done_sending, done_recving = worker.get_finished()
+
+        self.assertEqual(done_sending, set())
+        self.assertEqual(done_recving, {"req-failed"})
+        self.assertNotIn("req-failed", worker.reqs_pulling)
+        self.assertEqual(worker.get_block_ids_with_load_errors(), {4, 5})
+        self.assertEqual(worker.get_block_ids_with_load_errors(), set())
+        self.assertEqual(
+            sum(worker.transfer_stats.data["num_failed_transfers"]), 1)
+
     def test_get_finished_sending_expired(self):
         """Tests get_finished for a request that has expired."""
         self.vllm_config.kv_transfer_config.is_kv_producer = True
@@ -612,6 +715,9 @@ class TestTPUConnectorWorker(unittest.TestCase):
         self.assertNotIn('req1', worker.reqs_wait_pull)
         self.assertNotIn(7, worker.kv_pull_uuid_to_req_id_map)
         self.assertNotIn(7, worker.reqs_pending_pull)
+        status, error = worker._get_selective_plan_status(7)
+        self.assertEqual(status, "error")
+        self.assertIn("expired", error)
 
 
 class TestTPUConnectorUtils(unittest.TestCase):

@@ -11,7 +11,18 @@ log_file="${result_dir}/pd-router.log"
 mkdir -p "${result_dir}"
 
 if [[ -f "${pid_file}" ]] && kill -0 "$(cat "${pid_file}")" 2>/dev/null; then
-  kill "$(cat "${pid_file}")"
+  old_pid="$(cat "${pid_file}")"
+  kill "${old_pid}"
+  for _ in $(seq 1 50); do
+    if ! kill -0 "${old_pid}" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
+  if kill -0 "${old_pid}" 2>/dev/null; then
+    echo "Router PID ${old_pid} did not stop" >&2
+    exit 1
+  fi
 fi
 
 source "${HOME}/pd-loadgen-venv/bin/activate"

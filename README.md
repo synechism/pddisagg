@@ -31,10 +31,13 @@ that has not yet been measured.
   is the exact connector loaded by the benchmarked vLLM workers.
 - [`implementation/tpu-inference/tpu_inference/worker/tpu_worker.py`](implementation/tpu-inference/tpu_inference/worker/tpu_worker.py)
   contains the generic EngineCore TPU-affinity fix used for co-located workers.
+- [`implementation/tpu-inference/tpu_inference/runner/tpu_runner.py`](implementation/tpu-inference/tpu_inference/runner/tpu_runner.py)
+  contains the KV-cache lock used to serialize model dispatch and background
+  selective gathers.
 - [`implementation/tpu-inference/tests/distributed/test_tpu_connector.py`](implementation/tpu-inference/tests/distributed/test_tpu_connector.py)
-  is the exact 42-test connector suite that passed on the TPU VM.
+  is the exact 46-test connector suite that passed on the TPU VM.
 - [`patches/tpu-inference-v0.25`](patches/tpu-inference-v0.25) contains the
-  three apply-ready commits relative to upstream tag `v0.25.0`.
+  four apply-ready commits relative to upstream tag `v0.25.0`.
 - [`scripts/remote/serve_pd_worker.sh`](scripts/remote/serve_pd_worker.sh) is
   the worker launcher used for both prefill and decode.
 - [`benchmarks/prefix_selective.py`](benchmarks/prefix_selective.py) is the
@@ -42,13 +45,14 @@ that has not yet been measured.
 - [`benchmarks/results/selective-pull`](benchmarks/results/selective-pull)
   contains the matched control and optimized response records.
 
-The source snapshots match commit `b77ea5fb` byte-for-byte. The branch contains
+The source snapshots match commit `cae7bdb4` byte-for-byte. The branch contains
 only these commits after upstream `v0.25.0`:
 
 ```text
 afac0f54 Optimize and stabilize TPU PD transfers
 69ba34f4 Transfer only uncached KV blocks for prefix hits
 b77ea5fb Release producer state on full prefix hits
+cae7bdb4 Make selective TPU transfers race-safe
 ```
 
 ## How selective pull works
@@ -58,11 +62,15 @@ b77ea5fb Release producer state on full prefix hits
 2. After decode allocates blocks, it calculates which prompt blocks are
    already cached.
 3. Decode sends the uncached remote-block suffix over the connector's side
-   channel.
-4. Prefill validates that request, gathers only those blocks, and registers the
-   smaller transfer.
+   channel, retrying briefly if its plan arrives before producer metadata.
+4. Prefill validates that request and asynchronously gathers only those blocks,
+   keeping the control listener responsive during cold JAX compilation.
 5. Decode pulls and inserts only the missing suffix. A full hit sends an
    immediate release notification and performs no transfer.
+
+KV-cache access is serialized against model dispatch. A failed remote transfer
+is scoped to that request; the included router retries it once as a fresh local
+decode without transfer metadata.
 
 No KV values are quantized or approximated. The optimized and stock runs
 returned identical output token IDs.

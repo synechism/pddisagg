@@ -1,7 +1,7 @@
 From b77ea5fb798ad1ac9094bf32788cbe2f9a384b5f Mon Sep 17 00:00:00 2001
 From: synechism <abhisiri@sas.upenn.edu>
 Date: Sun, 26 Jul 2026 18:34:12 -0400
-Subject: [PATCH 3/3] Release producer state on full prefix hits
+Subject: [PATCH 3/4] Release producer state on full prefix hits
 
 ---
  tests/distributed/test_tpu_connector.py    | 24 ++++++++++++++++++++++
@@ -70,4 +70,3 @@ index 5ddd4d77..95ce36ac 100644
          """
 -- 
 2.51.0
-

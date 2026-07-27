@@ -62,6 +62,28 @@ def make_decode_payload(
     return result
 
 
+def decode_worker_headers(
+    request_id: str,
+    *,
+    local_retry: bool = False,
+) -> dict[str, str]:
+    worker_request_id = (
+        f"{request_id}-local-retry" if local_retry else request_id
+    )
+    return {
+        "X-PD-Request-ID": worker_request_id,
+        "X-Request-Id": worker_request_id,
+    }
+
+
+def should_retry_decode_locally(
+    response: httpx.Response,
+    kv_transfer_params: dict[str, Any] | None,
+) -> bool:
+    """Retry only failed remote-KV attempts, before a response is relayed."""
+    return bool(kv_transfer_params) and response.status_code >= 500
+
+
 class JsonlRecorder:
     def __init__(self, path: Path):
         self.path = path
@@ -204,6 +226,9 @@ def create_app(
             "status": "started",
             "prefill_s": None,
             "decoder_headers_s": None,
+            "decode_attempts": 0,
+            "remote_decode_status": None,
+            "local_retry_s": None,
             "first_decoder_byte_s": None,
             "total_s": None,
             "kv_transfer": None,
@@ -236,12 +261,28 @@ def create_app(
                 decode_response = await app.state.decode_client.post(
                     f"{decode_url}/v1/completions",
                     json=decode_payload,
-                    headers={
-                        "X-PD-Request-ID": request_id,
-                        "X-Request-Id": request_id,
-                    },
+                    headers=decode_worker_headers(request_id),
                 )
-                record["decoder_headers_s"] = time.perf_counter() - decode_started
+                record["decode_attempts"] = 1
+                if should_retry_decode_locally(decode_response, kv_params):
+                    record["remote_decode_status"] = decode_response.status_code
+                    record["kv_transfer"] = "local_retry"
+                    local_retry_started = time.perf_counter()
+                    decode_response = await app.state.decode_client.post(
+                        f"{decode_url}/v1/completions",
+                        json=make_decode_payload(payload, None),
+                        headers=decode_worker_headers(
+                            request_id,
+                            local_retry=True,
+                        ),
+                    )
+                    record["local_retry_s"] = (
+                        time.perf_counter() - local_retry_started
+                    )
+                    record["decode_attempts"] = 2
+                record["decoder_headers_s"] = (
+                    time.perf_counter() - decode_started
+                )
                 decode_response.raise_for_status()
                 record["status"] = "ok"
                 record["total_s"] = time.perf_counter() - started
@@ -260,15 +301,35 @@ def create_app(
                 "POST",
                 f"{decode_url}/v1/completions",
                 json=decode_payload,
-                headers={
-                    "X-PD-Request-ID": request_id,
-                    "X-Request-Id": request_id,
-                },
+                headers=decode_worker_headers(request_id),
             )
             decode_response = await app.state.decode_client.send(
                 decode_request,
                 stream=True,
             )
+            record["decode_attempts"] = 1
+            if should_retry_decode_locally(decode_response, kv_params):
+                record["remote_decode_status"] = decode_response.status_code
+                await decode_response.aclose()
+                record["kv_transfer"] = "local_retry"
+                local_retry_started = time.perf_counter()
+                decode_request = app.state.decode_client.build_request(
+                    "POST",
+                    f"{decode_url}/v1/completions",
+                    json=make_decode_payload(payload, None),
+                    headers=decode_worker_headers(
+                        request_id,
+                        local_retry=True,
+                    ),
+                )
+                decode_response = await app.state.decode_client.send(
+                    decode_request,
+                    stream=True,
+                )
+                record["local_retry_s"] = (
+                    time.perf_counter() - local_retry_started
+                )
+                record["decode_attempts"] = 2
             record["decoder_headers_s"] = time.perf_counter() - decode_started
             decode_response.raise_for_status()
         except Exception as exc:

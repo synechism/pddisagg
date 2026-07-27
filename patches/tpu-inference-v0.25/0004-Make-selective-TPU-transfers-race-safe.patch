@@ -1,0 +1,844 @@
+From cae7bdb4f1f85dfb08d6d38c1469fb3866d89a32 Mon Sep 17 00:00:00 2001
+From: synechism <abhisiri@sas.upenn.edu>
+Date: Sun, 26 Jul 2026 22:04:24 -0400
+Subject: [PATCH 4/4] Make selective TPU transfers race-safe
+
+---
+ tests/distributed/test_tpu_connector.py    | 108 +++++-
+ tpu_inference/distributed/tpu_connector.py | 395 ++++++++++++++++-----
+ tpu_inference/runner/tpu_runner.py         |  98 ++---
+ 3 files changed, 457 insertions(+), 144 deletions(-)
+
+diff --git a/tests/distributed/test_tpu_connector.py b/tests/distributed/test_tpu_connector.py
+index f4708eb3..094058d7 100644
+--- a/tests/distributed/test_tpu_connector.py
++++ b/tests/distributed/test_tpu_connector.py
+@@ -124,6 +124,10 @@ class TestTPUConnector(unittest.TestCase):
+         connector.get_finished(set())
+         mock_worker_instance.get_finished.assert_called_once_with()
+ 
++        connector.get_block_ids_with_load_errors()
++        mock_worker_instance.get_block_ids_with_load_errors.assert_called_once_with(
++        )
++
+ 
+ class TestTPUConnectorScheduler(unittest.TestCase):
+ 
+@@ -472,6 +476,8 @@ class TestTPUConnectorWorker(unittest.TestCase):
+         self.vllm_config.kv_transfer_config.is_kv_producer = True
+         worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
+         worker.runner = MagicMock()
++        worker.runner.kv_caches = ["cache-layer"]
++        worker.runner.kv_cache_lock = None
+         worker.mesh = MagicMock()
+         worker.kv_transfer_server = MagicMock()
+         worker.reqs_pending_pull[7] = (
+@@ -487,12 +493,88 @@ class TestTPUConnectorWorker(unittest.TestCase):
+ 
+         self.all_mocks["device_array"].assert_called_once()
+         self.all_mocks["select_from_kv_caches"].assert_called_once_with(
+-            worker.runner.kv_caches,
++            ["cache-layer"],
+             self.all_mocks["device_array"].return_value)
+         worker.kv_transfer_server.await_pull.assert_called_once_with(
+             7, "selected-kv")
+         self.assertEqual(worker.reqs_wait_pull["req-selective"][0],
+                          "selected-kv")
++        self.assertEqual(worker._get_selective_plan_status(7),
++                         ("ready", None))
++
++    def test_selective_plan_is_pending_until_worker_registration(self):
++        self.vllm_config.kv_transfer_config.is_kv_producer = True
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++        self.all_mocks["time"].perf_counter.return_value = 10.0
++
++        self.assertEqual(worker._get_selective_plan_status(7),
++                         ("pending", None))
++
++        send_meta = tpu_connector.SendMeta(uuid=7,
++                                           local_block_ids=[10, 11],
++                                           expiration_time=100)
++        worker.selective_pull = True
++        worker._prepare_kv_and_wait("req-early", send_meta)
++
++        self.assertEqual(worker._get_selective_plan_status(7),
++                         ("prepare", None))
++
++    def test_selective_dispatch_offloads_multiple_preparations(self):
++        self.vllm_config.kv_transfer_config.is_kv_producer = True
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++        worker.selective_pull = True
++        self.all_mocks["time"].perf_counter.return_value = 10.0
++        for uuid in (7, 8):
++            worker._prepare_kv_and_wait(
++                f"req-{uuid}",
++                tpu_connector.SendMeta(uuid=uuid,
++                                       local_block_ids=[10, 11],
++                                       expiration_time=100),
++            )
++
++        futures = [MagicMock(), MagicMock()]
++        worker.selective_prepare_executor.submit.side_effect = futures
++        sock = MagicMock()
++        pending_responses = {}
++
++        for uuid in (7, 8):
++            worker._dispatch_selective_plan(
++                sock,
++                f"client-{uuid}".encode(),
++                ('{"action":"prepare","uuid":%d,'
++                 '"remote_block_ids":[11]}') % uuid,
++                pending_responses,
++            )
++
++        self.assertEqual(len(pending_responses), 2)
++        self.assertEqual(worker.selective_prepare_executor.submit.call_count,
++                         2)
++        sock.send_multipart.assert_not_called()
++
++    def test_request_selective_plan_retries_pending_response(self):
++        self.vllm_config.kv_transfer_config.is_kv_producer = False
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++        worker._selective_registration_timeout = MagicMock(return_value=5.0)
++        self.all_mocks["time"].perf_counter.side_effect = [0.0, 0.0, 0.001]
++        socket = self.all_mocks["make_zmq_socket"].return_value
++        socket.recv_json.side_effect = [{
++            "status": "pending"
++        }, {
++            "status": "ready"
++        }]
++        load_meta = tpu_connector.LoadMeta(
++            uuid=7,
++            local_block_ids=[1],
++            remote_block_ids=[11],
++            remote_host="host",
++            remote_port=123,
++            selective_pull=True,
++        )
++
++        worker._request_selective_pull_plan(load_meta)
++
++        self.assertEqual(socket.send_json.call_count, 2)
++        self.all_mocks["time"].sleep.assert_called_once()
+ 
+     def test_process_send_load_for_consumer_loading(self):
+         """Tests process_send_load for a consumer that needs to load KV."""
+@@ -595,6 +677,27 @@ class TestTPUConnectorWorker(unittest.TestCase):
+                          ('kv_data', 'indices', [1]))
+         self.all_mocks['insert_kv_chunks'].assert_not_called()
+ 
++    def test_get_finished_pull_failure_recomputes_invalid_blocks(self):
++        self.vllm_config.kv_transfer_config.is_kv_producer = False
++        worker = tpu_connector.TPUConnectorWorker(self.vllm_config)
++
++        mock_future = MagicMock()
++        mock_future.done.return_value = True
++        mock_future.result.side_effect = RuntimeError("producer expired")
++        worker.reqs_pulling = {
++            "req-failed": [mock_future, None, [4, 5]]
++        }
++
++        done_sending, done_recving = worker.get_finished()
++
++        self.assertEqual(done_sending, set())
++        self.assertEqual(done_recving, {"req-failed"})
++        self.assertNotIn("req-failed", worker.reqs_pulling)
++        self.assertEqual(worker.get_block_ids_with_load_errors(), {4, 5})
++        self.assertEqual(worker.get_block_ids_with_load_errors(), set())
++        self.assertEqual(
++            sum(worker.transfer_stats.data["num_failed_transfers"]), 1)
++
+     def test_get_finished_sending_expired(self):
+         """Tests get_finished for a request that has expired."""
+         self.vllm_config.kv_transfer_config.is_kv_producer = True
+@@ -612,6 +715,9 @@ class TestTPUConnectorWorker(unittest.TestCase):
+         self.assertNotIn('req1', worker.reqs_wait_pull)
+         self.assertNotIn(7, worker.kv_pull_uuid_to_req_id_map)
+         self.assertNotIn(7, worker.reqs_pending_pull)
++        status, error = worker._get_selective_plan_status(7)
++        self.assertEqual(status, "error")
++        self.assertIn("expired", error)
+ 
+ 
+ class TestTPUConnectorUtils(unittest.TestCase):
+diff --git a/tpu_inference/distributed/tpu_connector.py b/tpu_inference/distributed/tpu_connector.py
+index 95ce36ac..5dae2aab 100644
+--- a/tpu_inference/distributed/tpu_connector.py
++++ b/tpu_inference/distributed/tpu_connector.py
+@@ -62,6 +62,7 @@ import copy
+ import json
+ import threading
+ import time
++from contextlib import nullcontext
+ from concurrent.futures import Future, ThreadPoolExecutor
+ from dataclasses import dataclass, field
+ from typing import TYPE_CHECKING, Any, Optional
+@@ -102,6 +103,8 @@ from tpu_inference.runner.utils import (get_kv_transfer_metadata,
+ from tpu_inference.utils import device_array
+ 
+ ReqId = str
++SELECTIVE_CONTROL_POLL_MS = 1
++SELECTIVE_REGISTRATION_TIMEOUT_S = 5.0
+ 
+ # Feature requests:
+ # 1. support async pulling natively
+@@ -247,6 +250,10 @@ class TPUConnector(KVConnectorBase_V1):
+         assert self.connector_worker is not None
+         return self.connector_worker.get_finished()
+ 
++    def get_block_ids_with_load_errors(self) -> set[int]:
++        assert self.connector_worker is not None
++        return self.connector_worker.get_block_ids_with_load_errors()
++
+     def get_kv_connector_stats(self) -> KVConnectorStats | None:
+         """
+         Get the KV transfer stats for the connector.
+@@ -535,6 +542,7 @@ class TPUConnectorWorker:
+         # req_id: (pull_thread_future, kv, block_ids)
+         self.reqs_pulling: dict[ReqId, list[Future, list[jax.Array],
+                                             list[int]]] = {}
++        self.failed_load_block_ids: set[int] = set()
+ 
+         # req_id: (kv, indices)
+         self.reqs_ready_to_insert: dict[ReqId, tuple[list[jax.Array],
+@@ -553,8 +561,15 @@ class TPUConnectorWorker:
+         self.kv_transfer_server = None
+         self.zmq_cxt = zmq.Context()
+         self.transfer_stats = TpuKVConnectorStats()
++        self._producer_state_lock = threading.RLock()
++        self.selective_pulls_preparing: set[int] = set()
++        self.selective_pulls_ready: set[int] = set()
++        # uuid -> (error message, tombstone expiry). Tombstones distinguish a
++        # genuinely stale plan from a plan that merely beat worker metadata.
++        self.selective_pull_errors: dict[int, tuple[str, float]] = {}
+         if self.is_producer:
+             self.kv_d2h_executor = ThreadPoolExecutor(max_workers=128)
++            self.selective_prepare_executor = ThreadPoolExecutor(max_workers=8)
+             ready_event = threading.Event()
+             self.pull_notify_listener_t = threading.Thread(
+                 target=self._pull_notify_listener,
+@@ -577,6 +592,8 @@ class TPUConnectorWorker:
+         if self.is_producer:
+             if hasattr(self, "pull_notify_listener_t"):
+                 self.pull_notify_listener_t.join(timeout=0)
++            if hasattr(self, "selective_prepare_executor"):
++                self.selective_prepare_executor.shutdown(wait=False)
+         else:
+             if hasattr(self, "pull_executor"):
+                 self.pull_executor.shutdown(wait=False)
+@@ -647,33 +664,93 @@ class TPUConnectorWorker:
+             f"TPUConnector Worker {self.node_id} --> zmq listener | sock_path={sock_path}"
+         )
+ 
++        poller = zmq.Poller()
++        poller.register(sock, zmq.POLLIN)
++        pending_responses: dict[Future, tuple[bytes, int]] = {}
++
+         while True:
+-            client_id, message_bytes = sock.recv_multipart()
+-            message = message_bytes.decode("utf-8")
+-            if message.startswith("{"):
++            events = dict(poller.poll(SELECTIVE_CONTROL_POLL_MS))
++            if sock in events:
++                client_id, message_bytes = sock.recv_multipart()
++                message = message_bytes.decode("utf-8")
++                if message.startswith("{"):
++                    self._dispatch_selective_plan(
++                        sock,
++                        client_id,
++                        message,
++                        pending_responses,
++                    )
++                else:
++                    self._handle_pull_done(int(message))
++
++            # JAX gather/await_pull can compile for a new transfer bucket.
++            # Keep it off the ROUTER thread and send all replies from this
++            # thread because ZeroMQ sockets are not thread-safe.
++            for future in list(pending_responses):
++                if not future.done():
++                    continue
++                client_id, uuid = pending_responses.pop(future)
+                 try:
+-                    plan = json.loads(message)
+-                    if plan.get("action") != "prepare":
+-                        raise ValueError(
+-                            f"unknown pull-plan action {plan.get('action')!r}")
+-                    uuid = int(plan["uuid"])
+-                    requested_block_ids = [
+-                        int(block_id)
+-                        for block_id in plan["remote_block_ids"]
+-                    ]
+-                    self._prepare_selective_kv(uuid, requested_block_ids)
++                    future.result()
+                     response = {"status": "ready"}
+                 except Exception as exc:
+                     logger.exception(
+-                        "TPUConnector Worker %s --> selective pull plan "
+-                        "failed", self.node_id)
++                        "TPUConnector Worker %s --> selective pull "
++                        "preparation failed uuid=%s", self.node_id, uuid)
+                     response = {"status": "error", "error": str(exc)}
+                 sock.send_multipart(
+                     [client_id,
+                      json.dumps(response).encode("utf-8")])
+-                continue
+ 
+-            uuid = int(message)
++    def _dispatch_selective_plan(
++        self,
++        sock: zmq.Socket,
++        client_id: bytes,
++        message: str,
++        pending_responses: dict[Future, tuple[bytes, int]],
++    ) -> None:
++        try:
++            plan = json.loads(message)
++            if plan.get("action") != "prepare":
++                raise ValueError(
++                    f"unknown pull-plan action {plan.get('action')!r}")
++            uuid = int(plan["uuid"])
++            requested_block_ids = [
++                int(block_id) for block_id in plan["remote_block_ids"]
++            ]
++            status, error = self._get_selective_plan_status(uuid)
++            if status == "prepare":
++                with self._producer_state_lock:
++                    # Claim before submitting so duplicate plans cannot launch
++                    # two gathers while the executor is scheduling the first.
++                    if (uuid not in self.reqs_pending_pull
++                            or uuid in self.selective_pulls_preparing):
++                        response = {"status": "pending"}
++                        sock.send_multipart([
++                            client_id,
++                            json.dumps(response).encode("utf-8")
++                        ])
++                        return
++                    self.selective_pulls_preparing.add(uuid)
++                future = self.selective_prepare_executor.submit(
++                    self._prepare_selective_kv,
++                    uuid,
++                    requested_block_ids,
++                )
++                pending_responses[future] = (client_id, uuid)
++                return
++            response = {"status": status}
++            if error is not None:
++                response["error"] = error
++        except Exception as exc:
++            logger.exception(
++                "TPUConnector Worker %s --> selective pull plan failed",
++                self.node_id)
++            response = {"status": "error", "error": str(exc)}
++        sock.send_multipart([client_id, json.dumps(response).encode("utf-8")])
++
++    def _handle_pull_done(self, uuid: int) -> None:
++        with self._producer_state_lock:
+             if uuid in self.kv_pull_uuid_to_req_id_map:
+                 req_id = self.kv_pull_uuid_to_req_id_map[uuid]
+                 logger.info(
+@@ -688,6 +765,8 @@ class TPUConnectorWorker:
+                     self.reqs_wait_pull[req_id][2] = -1
+                     self.reqs_pending_pull.pop(uuid, None)
+                     self.kv_pull_uuid_to_req_id_map.pop(uuid)
++                    self.selective_pulls_preparing.discard(uuid)
++                    self.selective_pulls_ready.discard(uuid)
+                 else:
+                     logger.warning(
+                         f"TPUConnector Worker {self.node_id} --> Disagg producer recives a non-exist pulling finished notification request {req_id} | uuid {uuid}"
+@@ -696,39 +775,116 @@ class TPUConnectorWorker:
+                 logger.warning(
+                     f"TPUConnector Worker {self.node_id} --> Disagg producer recives a non-exist pulling finished notification uuid {uuid}"
+                 )
+-            time.sleep(0)
+-            # The response is not really needed.
+-            # sock.send_multipart([client_id, b"", b"ACK"])
++
++    def _selective_registration_timeout(self) -> float:
++        return min(
++            float(dist_utils.get_p2p_wait_pull_timeout()),
++            SELECTIVE_REGISTRATION_TIMEOUT_S,
++        )
++
++    def _prune_selective_pull_errors(self, now: float) -> None:
++        for uuid, (_, expires) in list(self.selective_pull_errors.items()):
++            if now >= expires:
++                self.selective_pull_errors.pop(uuid, None)
++
++    def _get_selective_plan_status(
++        self,
++        uuid: int,
++    ) -> tuple[str, str | None]:
++        with self._producer_state_lock:
++            self._prune_selective_pull_errors(time.perf_counter())
++            if uuid in self.selective_pull_errors:
++                return "error", self.selective_pull_errors[uuid][0]
++            if uuid in self.selective_pulls_ready:
++                return "ready", None
++            if uuid in self.selective_pulls_preparing:
++                return "pending", None
++            if uuid in self.reqs_pending_pull:
++                return "prepare", None
++            # Metadata returned by the scheduler can reach D before the
++            # producer worker sees reqs_to_send. "pending" makes that window
++            # an explicit protocol state instead of a fatal KeyError.
++            return "pending", None
++
++    def _remember_selective_pull_error(self, uuid: int, error: str) -> None:
++        self.selective_pull_errors[uuid] = (
++            error,
++            time.perf_counter() + self._selective_registration_timeout(),
++        )
++
++    def _fail_selective_pull(self, uuid: int, error: str) -> None:
++        with self._producer_state_lock:
++            pending = self.reqs_pending_pull.pop(uuid, None)
++            req_id = self.kv_pull_uuid_to_req_id_map.pop(uuid, None)
++            if req_id is None and pending is not None:
++                req_id = pending[0]
++            self.selective_pulls_preparing.discard(uuid)
++            self.selective_pulls_ready.discard(uuid)
++            if req_id in self.reqs_wait_pull:
++                # Reuse normal producer cleanup so the scheduler releases
++                # blocks on its next connector poll.
++                self.reqs_wait_pull[req_id][1] = -1
++            self._remember_selective_pull_error(uuid, error)
++
++    def _select_runner_kv(self, indices: jax.Array) -> list[jax.Array]:
++        # TPUModelRunner reassigns its cache list after every functional JAX
++        # update. Coordinate dispatch with model execution and copy the list
++        # so this gather owns a coherent set of immutable array references.
++        lock = getattr(self.runner, "kv_cache_lock", None)
++        with lock if lock is not None else nullcontext():
++            kv_caches = list(self.runner.kv_caches)
++            return select_from_kv_caches(kv_caches, indices)
+ 
+     def _prepare_selective_kv(self, uuid: int,
+                               requested_block_ids: list[int]) -> None:
+-        if uuid not in self.reqs_pending_pull:
+-            raise KeyError(f"no pending selective pull for uuid={uuid}")
+-        if not requested_block_ids:
+-            raise ValueError("selective pull plan contains no blocks")
+-
+-        req_id, req_meta = self.reqs_pending_pull.pop(uuid)
+-        all_block_ids = req_meta.local_block_ids
+-        first_requested = len(all_block_ids) - len(requested_block_ids)
+-        if (first_requested < 0
+-                or all_block_ids[first_requested:] != requested_block_ids):
+-            raise ValueError(
+-                "selective pull must request a suffix of producer blocks")
+-
+-        num_valid_blocks = len(requested_block_ids)
+-        transfer_block_count = get_transfer_block_bucket(num_valid_blocks)
+-        padded_block_ids = requested_block_ids + [requested_block_ids[-1]] * (
+-            transfer_block_count - num_valid_blocks)
+-        indices = device_array(self.mesh, np.array(padded_block_ids))
+-        kv = select_from_kv_caches(self.runner.kv_caches, indices)
+-        self.reqs_wait_pull[req_id][0] = kv
++        try:
++            with self._producer_state_lock:
++                if uuid not in self.reqs_pending_pull:
++                    raise RuntimeError(
++                        f"selective pull uuid={uuid} is no longer pending")
++                if not requested_block_ids:
++                    raise ValueError(
++                        "selective pull plan contains no blocks")
++
++                req_id, req_meta = self.reqs_pending_pull.pop(uuid)
++                all_block_ids = req_meta.local_block_ids
++                first_requested = len(all_block_ids) - len(
++                    requested_block_ids)
++                if (first_requested < 0
++                        or all_block_ids[first_requested:]
++                        != requested_block_ids):
++                    raise ValueError(
++                        "selective pull must request a suffix of producer "
++                        "blocks")
++            num_valid_blocks = len(requested_block_ids)
++            transfer_block_count = get_transfer_block_bucket(num_valid_blocks)
++            padded_block_ids = requested_block_ids + [
++                requested_block_ids[-1]
++            ] * (transfer_block_count - num_valid_blocks)
++            indices = device_array(self.mesh, np.array(padded_block_ids))
++            kv = self._select_runner_kv(indices)
++
++            with self._producer_state_lock:
++                if req_id not in self.reqs_wait_pull:
++                    raise RuntimeError(
++                        f"selective pull uuid={uuid} expired while preparing")
++                self.reqs_wait_pull[req_id][0] = kv
+ 
+-        logger.info(
+-            "TPUConnector Worker %s --> req_id=%s selective pull ready "
+-            "requested_blocks=%d total_blocks=%d transfer_blocks=%d "
+-            "saved_blocks=%d", self.node_id, req_id, num_valid_blocks,
+-            len(all_block_ids), transfer_block_count, first_requested)
+-        self.kv_transfer_server.await_pull(uuid, kv)
++            logger.info(
++                "TPUConnector Worker %s --> req_id=%s selective pull ready "
++                "requested_blocks=%d total_blocks=%d transfer_blocks=%d "
++                "saved_blocks=%d", self.node_id, req_id, num_valid_blocks,
++                len(all_block_ids), transfer_block_count, first_requested)
++            self.kv_transfer_server.await_pull(uuid, kv)
++            with self._producer_state_lock:
++                if req_id not in self.reqs_wait_pull:
++                    raise RuntimeError(
++                        f"selective pull uuid={uuid} expired while preparing")
++                self.selective_pulls_preparing.discard(uuid)
++                self.selective_pulls_ready.add(uuid)
++        except Exception as exc:
++            self._fail_selective_pull(uuid, str(exc))
++            raise
+ 
+     def process_send_load(self, metadata: TPUConnectorMetadata):
+         """
+@@ -772,9 +928,11 @@ class TPUConnectorWorker:
+                     _, kv, block_numbers = self.reqs_pulling.pop(req_id)
+                     if len(block_numbers) > 0:
+                         start_time = time.perf_counter()
+-                        self.runner.kv_caches = insert_kv_chunks(
+-                            self.runner.kv_caches, kv, block_numbers,
+-                            self.mesh, self.sharding.spec)
++                        lock = getattr(self.runner, "kv_cache_lock", None)
++                        with lock if lock is not None else nullcontext():
++                            self.runner.kv_caches = insert_kv_chunks(
++                                self.runner.kv_caches, kv, block_numbers,
++                                self.mesh, self.sharding.spec)
+                         end_time = time.perf_counter()
+                         logger.info(
+                             f"TPUConnector Worker {self.node_id} --> req_id={req_id}, takes {(end_time - start_time)*1000:.2f}ms for insert_kv_chunks"
+@@ -806,11 +964,13 @@ class TPUConnectorWorker:
+     def _prepare_kv_and_wait(self, req_id: str, req_meta: SendMeta):
+         local_block_ids = req_meta.local_block_ids
+         if self.selective_pull:
+-            self.reqs_wait_pull[req_id] = [
+-                None, req_meta.expiration_time, -1
+-            ]
+-            self.reqs_pending_pull[req_meta.uuid] = (req_id, req_meta)
+-            self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
++            with self._producer_state_lock:
++                self.reqs_wait_pull[req_id] = [
++                    None, req_meta.expiration_time, -1
++                ]
++                self.reqs_pending_pull[req_meta.uuid] = (req_id, req_meta)
++                self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
++                self.selective_pull_errors.pop(req_meta.uuid, None)
+             logger.info(
+                 "TPUConnector Worker %s --> req_id=%s waiting for "
+                 "decoder selective pull plan total_blocks=%d", self.node_id,
+@@ -830,7 +990,7 @@ class TPUConnectorWorker:
+         padded_block_ids = local_block_ids + [local_block_ids[-1]] * (
+             transfer_block_count - num_valid_blocks)
+         indices = device_array(self.mesh, np.array(padded_block_ids))
+-        kv = select_from_kv_caches(self.runner.kv_caches, indices)
++        kv = self._select_runner_kv(indices)
+         logger.info(
+             "TPUConnector Worker %s --> req_id=%s KV transfer bucket "
+             "valid_blocks=%d transfer_blocks=%d", self.node_id, req_id,
+@@ -845,10 +1005,11 @@ class TPUConnectorWorker:
+             # calling await_pull, it could be a stranding buffer if D never pulls it.
+             # So we have to set use_raw_buffers=False and stores the kv, then the kv buffer
+             # will be safely destroyed by either D notifying or expiration.
+-            self.reqs_wait_pull[req_id] = [
+-                kv, req_meta.expiration_time, buffer_idx
+-            ]
+-            self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
++            with self._producer_state_lock:
++                self.reqs_wait_pull[req_id] = [
++                    kv, req_meta.expiration_time, buffer_idx
++                ]
++                self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
+ 
+             if jax.profiler.TraceAnnotation.is_enabled():
+                 dims_str, kv_size_bytes = get_kv_transfer_metadata(kv)
+@@ -907,10 +1068,11 @@ class TPUConnectorWorker:
+                                                 d2h_transfer_time)
+ 
+         # 4. Network transfer
+-        self.reqs_wait_pull[req_id] = [
+-            dest_buffer, req_meta.expiration_time, buffer_idx
+-        ]
+-        self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
++        with self._producer_state_lock:
++            self.reqs_wait_pull[req_id] = [
++                dest_buffer, req_meta.expiration_time, buffer_idx
++            ]
++            self.kv_pull_uuid_to_req_id_map[req_meta.uuid] = req_id
+ 
+         if jax.profiler.TraceAnnotation.is_enabled():
+             dims_str, kv_size_bytes = get_kv_transfer_metadata(
+@@ -1004,11 +1166,10 @@ class TPUConnectorWorker:
+                 self.transfer_stats.record_successful_transfer(
+                     prepare_time_ms, pull_time_ms, kv_size_mb)
+             else:
+-                logger.warning(
+-                    f"Worker {self.node_id} --> kv transfer | failed to pull req_id={req_id} with in {pull_time_ms:.2f}ms | "
+-                    f"uuid={req_meta.uuid} | prepare time={prepare_time_ms:.2f}ms | "
+-                    f"size={kv_size_mb:.2f}MB")
+-                self.transfer_stats.record_failed_transfer()
++                raise TimeoutError(
++                    "KV transfer timed out "
++                    f"req_id={req_id} uuid={req_meta.uuid} "
++                    f"after {pull_time_ms:.2f}ms")
+         else:
+             logger.info(
+                 f"Worker {self.node_id} --> kv transfer | done pull req_id={req_id} | "
+@@ -1029,17 +1190,30 @@ class TPUConnectorWorker:
+                                  socket_type=zmq.DEALER,
+                                  bind=False)
+         try:
+-            socket.setsockopt(
+-                zmq.RCVTIMEO,
+-                int(dist_utils.get_p2p_wait_pull_timeout() * 1000),
+-            )
+-            socket.send_json({
+-                "action": "prepare",
+-                "uuid": req_meta.uuid,
+-                "remote_block_ids": req_meta.remote_block_ids,
+-            })
+-            response = socket.recv_json()
+-            if response.get("status") != "ready":
++            deadline = (
++                time.perf_counter() + self._selective_registration_timeout())
++            while True:
++                remaining = deadline - time.perf_counter()
++                if remaining <= 0:
++                    raise TimeoutError(
++                        "producer did not register selective pull "
++                        f"uuid={req_meta.uuid}")
++                socket.setsockopt(
++                    zmq.RCVTIMEO,
++                    max(1, int(remaining * 1000)),
++                )
++                socket.send_json({
++                    "action": "prepare",
++                    "uuid": req_meta.uuid,
++                    "remote_block_ids": req_meta.remote_block_ids,
++                })
++                response = socket.recv_json()
++                status = response.get("status")
++                if status == "ready":
++                    return
++                if status == "pending":
++                    time.sleep(min(0.001, remaining))
++                    continue
+                 raise RuntimeError(
+                     "producer rejected selective pull plan: "
+                     f"{response.get('error', 'unknown error')}")
+@@ -1093,30 +1267,52 @@ class TPUConnectorWorker:
+             if self.reqs_pulling[req_id][1] is None:
+                 future = self.reqs_pulling[req_id][0]
+                 if future.done():
+-                    kv = future.result()
++                    try:
++                        kv = future.result()
++                    except Exception:
++                        _, _, block_ids = self.reqs_pulling.pop(req_id)
++                        self.failed_load_block_ids.update(block_ids)
++                        self.transfer_stats.record_failed_transfer()
++                        logger.exception(
++                            "Worker %s --> KV pull failed for req_id=%s; "
++                            "marking blocks invalid for local recompute",
++                            self.node_id,
++                            req_id,
++                        )
++                        done_recving.add(req_id)
++                        continue
+                     self.reqs_pulling[req_id][1] = kv
+                     done_recving.add(req_id)
+ 
+         # Mark a req as done seding when it's expired.
+         # This req can then be released blocks in the current scheduler step.
+         now = time.perf_counter()
+-        for req_id in list(self.reqs_wait_pull):
+-            buffer, expires, buffer_index = self.reqs_wait_pull[req_id]
+-            if now > expires:
+-                if expires > 0:
+-                    logger.warning(
+-                        f"Worker {self.node_id} --> req_id={req_id} KV transfer timeout. Force recycle the memory buffer."
+-                    )
+-                if buffer_index != -1 and self.host_kv_pool is not None:
+-                    self.host_kv_pool.return_buffer(buffer_index, buffer)
+-                del self.reqs_wait_pull[req_id]
+-                for uuid, mapped_req_id in list(
+-                        self.kv_pull_uuid_to_req_id_map.items()):
+-                    if mapped_req_id == req_id:
+-                        self.kv_pull_uuid_to_req_id_map.pop(uuid, None)
+-                        self.reqs_pending_pull.pop(uuid, None)
+-                done_sending.add(req_id)
+-                # Return the buffer to the pool
++        with self._producer_state_lock:
++            self._prune_selective_pull_errors(now)
++            for req_id in list(self.reqs_wait_pull):
++                buffer, expires, buffer_index = self.reqs_wait_pull[req_id]
++                if now > expires:
++                    if expires > 0:
++                        logger.warning(
++                            f"Worker {self.node_id} --> req_id={req_id} KV transfer timeout. Force recycle the memory buffer."
++                        )
++                    if buffer_index != -1 and self.host_kv_pool is not None:
++                        self.host_kv_pool.return_buffer(buffer_index, buffer)
++                    del self.reqs_wait_pull[req_id]
++                    for uuid, mapped_req_id in list(
++                            self.kv_pull_uuid_to_req_id_map.items()):
++                        if mapped_req_id == req_id:
++                            self.kv_pull_uuid_to_req_id_map.pop(uuid, None)
++                            self.reqs_pending_pull.pop(uuid, None)
++                            self.selective_pulls_preparing.discard(uuid)
++                            self.selective_pulls_ready.discard(uuid)
++                            if expires > 0:
++                                self._remember_selective_pull_error(
++                                    uuid,
++                                    f"selective pull uuid={uuid} expired",
++                                )
++                    done_sending.add(req_id)
++                    # Return the buffer to the pool
+ 
+         if done_sending:
+             logger.info(
+@@ -1126,6 +1322,11 @@ class TPUConnectorWorker:
+                 f"Worker {self.node_id} -->  done_recving={done_recving}")
+         return done_sending, done_recving
+ 
++    def get_block_ids_with_load_errors(self) -> set[int]:
++        failed = self.failed_load_block_ids
++        self.failed_load_block_ids = set()
++        return failed
++
+ 
+ def get_uuid() -> int:
+     int128 = uuid4().int
+diff --git a/tpu_inference/runner/tpu_runner.py b/tpu_inference/runner/tpu_runner.py
+index 70d8dd91..5d6daefb 100644
+--- a/tpu_inference/runner/tpu_runner.py
++++ b/tpu_inference/runner/tpu_runner.py
+@@ -16,6 +16,7 @@ import functools
+ import logging
+ import random
+ import sys
++import threading
+ from contextlib import nullcontext
+ from dataclasses import dataclass
+ from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+@@ -587,6 +588,10 @@ class TPUModelRunner(KVConnectorModelRunnerMixin, LoRAModelRunnerMixin):
+         self.batch_counter = 0
+ 
+         self.kv_caches: list[jax.Array] = []
++        # Connector transfer preparation may run on a background thread.
++        # Serialize JAX dispatches that consume or replace KV cache buffers so
++        # a gather cannot race a model forward using donated buffers.
++        self.kv_cache_lock = threading.RLock()
+         self.layer_name_to_kvcache_index: dict[str, int] = {}
+ 
+         self.is_pooling_model: bool = self.model_config.runner_type == "pooling"
+@@ -1317,20 +1322,21 @@ class TPUModelRunner(KVConnectorModelRunnerMixin, LoRAModelRunnerMixin):
+                     scheduler_output) as kv_connector_output:
+                 # NOTE(Wenlong): It takes both `input_ids` and `inputs_embeds`,
+                 # but one of them would be `None`
+-                (self.kv_caches, hidden_states, aux_hidden_states,
+-                 expert_indices) = self.model_fn(
+-                     self.state_leaves,
+-                     self.kv_caches,
+-                     input_ids,
+-                     attn_metadata,
+-                     inputs_embeds,
+-                     input_positions,
+-                     tuple(self.layer_name_to_kvcache_index.items()),
+-                     lora_metadata,
+-                     intermediate_tensors,
+-                     self.is_first_rank,
+-                     self.is_last_rank,
+-                 )
++                with self.kv_cache_lock:
++                    (self.kv_caches, hidden_states, aux_hidden_states,
++                     expert_indices) = self.model_fn(
++                         self.state_leaves,
++                         self.kv_caches,
++                         input_ids,
++                         attn_metadata,
++                         inputs_embeds,
++                         input_positions,
++                         tuple(self.layer_name_to_kvcache_index.items()),
++                         lora_metadata,
++                         intermediate_tensors,
++                         self.is_first_rank,
++                         self.is_last_rank,
++                     )
+             if not self.is_last_rank:
+                 assert isinstance(hidden_states, JaxIntermediateTensors)
+                 hidden_states.kv_connector_output = kv_connector_output
+@@ -1476,40 +1482,40 @@ class TPUModelRunner(KVConnectorModelRunnerMixin, LoRAModelRunnerMixin):
+              set_forward_context(None, self.vllm_config), \
+              self.maybe_get_kv_connector_output(
+                  scheduler_output) as kv_connector_output:
+-            (generated_tokens, final_kv_caches, final_state, final_rng,
+-             all_expert_indices, logprobs_tensors) = continue_decode(
+-                 state=self.state_leaves,
+-                 model_fn=getattr(self.model, "step_fn_no_options",
+-                                  self.model_fn),
+-                 compute_logits_fn=self.compute_logits_fn,
+-                 sample_fn=sample,
+-                 mesh=self.mesh,
+-                 sampling_metadata=sampling_metadata,
+-                 init_state=init_state,
+-                 kv_caches=self.kv_caches,
+-                 max_decode_steps=max_decode_steps_arr,
+-                 static_max_decode_steps=self.static_max_decode_steps,
+-                 eos_token_id=self.eos_token_id,
+-                 padding_token_id=self.pad_token_id,
+-                 rng=self.rng_params_for_sampling,
+-                 inputs_embeds=None,
+-                 layer_name_to_kvcache_index=tuple(
+-                     self.layer_name_to_kvcache_index.items()),
+-                 lora_metadata=lora_metadata,
+-                 intermediate_tensors=None,
+-                 is_first_rank=self.is_first_rank,
+-                 is_last_rank=self.is_last_rank,
+-                 dp_size=self.dp_size,
+-                 collect_expert_indices=getattr(
+-                     self.vllm_config.model_config,
+-                     "enable_return_routed_experts", False),
+-                 max_logprobs=self.model_config.max_logprobs,
+-                 logprobs_mode=self.model_config.logprobs_mode,
+-             )
++            with self.kv_cache_lock:
++                (generated_tokens, final_kv_caches, final_state, final_rng,
++                 all_expert_indices, logprobs_tensors) = continue_decode(
++                     state=self.state_leaves,
++                     model_fn=getattr(self.model, "step_fn_no_options",
++                                      self.model_fn),
++                     compute_logits_fn=self.compute_logits_fn,
++                     sample_fn=sample,
++                     mesh=self.mesh,
++                     sampling_metadata=sampling_metadata,
++                     init_state=init_state,
++                     kv_caches=self.kv_caches,
++                     max_decode_steps=max_decode_steps_arr,
++                     static_max_decode_steps=self.static_max_decode_steps,
++                     eos_token_id=self.eos_token_id,
++                     padding_token_id=self.pad_token_id,
++                     rng=self.rng_params_for_sampling,
++                     inputs_embeds=None,
++                     layer_name_to_kvcache_index=tuple(
++                         self.layer_name_to_kvcache_index.items()),
++                     lora_metadata=lora_metadata,
++                     intermediate_tensors=None,
++                     is_first_rank=self.is_first_rank,
++                     is_last_rank=self.is_last_rank,
++                     dp_size=self.dp_size,
++                     collect_expert_indices=getattr(
++                         self.vllm_config.model_config,
++                         "enable_return_routed_experts", False),
++                     max_logprobs=self.model_config.max_logprobs,
++                     logprobs_mode=self.model_config.logprobs_mode,
++                 )
++                self.kv_caches = final_kv_caches
+         self.rng_params_for_sampling = final_rng
+ 
+-        self.kv_caches = final_kv_caches
+-
+         # continue_decode now returns fixed-size stacked buffers plus the
+         # number of steps actually executed (early EOS exit can stop before
+         # the cap). This is the single, end-of-run host transfer.
+-- 
+2.51.0

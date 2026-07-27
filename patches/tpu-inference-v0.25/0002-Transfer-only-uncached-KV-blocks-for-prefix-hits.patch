@@ -1,7 +1,7 @@
 From 69ba34f4c74640c58f687f80b29af107aa84fbc8 Mon Sep 17 00:00:00 2001
 From: synechism <abhisiri@sas.upenn.edu>
 Date: Sun, 26 Jul 2026 18:25:37 -0400
-Subject: [PATCH 2/3] Transfer only uncached KV blocks for prefix hits
+Subject: [PATCH 2/4] Transfer only uncached KV blocks for prefix hits
 
 ---
  tests/distributed/test_tpu_connector.py    |  80 +++++++++
@@ -456,4 +456,3 @@ index c45b4ee1..5ddd4d77 100644
  
 -- 
 2.51.0
-
